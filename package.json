@@ -4,7 +4,8 @@
     "build": "snowpack build",
     "test": "echo \"This template does not include a test runner by default.\" && exit 1",
     "format": "prettier --write \"src/**/*.ts\"",
-    "lint": "prettier --check \"src/**/*.ts\""
+    "lint": "prettier --check \"src/**/*.ts\"",
+    "publish": "rm -rf docs && cp -r build docs"
   },
   "dependencies": {
     "lit-element": "^2.4.0",
