@@ -422,7 +422,7 @@ var main = (function($) { var _ = {
 					// Slide.
 
 						// Create elements.
-	 						s.$slide = $('<div class="slide"><div class="caption"></div><div class="image"></div></div>');
+	 						s.$slide = $('<div class="slide"><div class="caption"></div><canvas class="image"></canvas></div>');
 
 	 					// Image.
  							s.$slideImage = s.$slide.children('.image');
@@ -431,6 +431,8 @@ var main = (function($) { var _ = {
 	 							s.$slideImage
 		 							.css('background-image', '')
 		 							.css('background-position', ($thumbnail.data('position') || 'center'));
+
+								s.dataset = Object.assign({}, $thumbnail.get(0).dataset)
 
 						// Caption.
 							s.$slideCaption = s.$slide.find('.caption');
@@ -534,7 +536,8 @@ var main = (function($) { var _ = {
 				// Slide.
 					oldSlide.$slide.removeClass('active');
 
-			}
+					oldSlide.$slide.get(0).dispatchEvent(new CustomEvent('slide-deactivated', { detail: {element:oldSlide.$slide.get(0)}, bubbles: true }))
+				}
 
 		// Activate new slide.
 
@@ -576,6 +579,8 @@ var main = (function($) { var _ = {
 										// Mark as active.
 											newSlide.$slide.addClass('active');
 
+											newSlide.$slide.get(0).dispatchEvent(new CustomEvent('slide-activated', { detail: {element:newSlide.$slide.get(0),dataset:newSlide.dataset}, bubbles: true }))
+
 										// Unlock.
 											window.setTimeout(function() {
 												_.locked = false;
@@ -595,6 +600,8 @@ var main = (function($) { var _ = {
 
 								// Mark as active.
 									newSlide.$slide.addClass('active');
+
+									newSlide.$slide.get(0).dispatchEvent(new CustomEvent('slide-activated', { detail: {element:newSlide.$slide.get(0),dataset:newSlide.dataset}, bubbles: true }))
 
 								// Unlock.
 									window.setTimeout(function() {
