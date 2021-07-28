@@ -1,4 +1,4 @@
-import * as BABYLON from '../_snowpack/pkg/babylonjs/core/Legacy/legacy.js';
+import * as BABYLON from '../_snowpack/pkg/@babylonjs/core/Legacy/legacy.js';
 import { runBabylonPlaygroundScene } from './runBabylonPlaygroundScene.js';
 var babylon = null;
 document.addEventListener('slide-activated', ev => {

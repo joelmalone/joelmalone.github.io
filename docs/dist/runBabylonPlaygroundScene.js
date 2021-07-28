@@ -1,4 +1,4 @@
-import * as BABYLON from '../_snowpack/pkg/babylonjs/core/Legacy/legacy.js';
+import * as BABYLON from '../_snowpack/pkg/@babylonjs/core/Legacy/legacy.js';
 export function runBabylonPlaygroundScene(canvasElement, createScene) {
   const engine = new BABYLON.Engine(canvasElement, true); // Generate the BABYLON 3D engine
 
