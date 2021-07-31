@@ -1,6 +1,9 @@
 import * as BABYLON from '@babylonjs/core/Legacy/legacy';
 
-declare type CreateScene = (engine: BABYLON.Engine, canvasElement: HTMLCanvasElement) => BABYLON.Scene;
+export type CreateScene = (
+  engine: BABYLON.Engine,
+  canvasElement: HTMLCanvasElement,
+) => BABYLON.Scene;
 
 export function runBabylonPlaygroundScene(
   canvasElement: HTMLCanvasElement,
@@ -32,6 +35,8 @@ export function runBabylonPlaygroundScene(
       engine,
       scene,
       dispose: () => {
+        console.log('Shutting down Babylon scene.');
+
         engine.stopRenderLoop();
         window.removeEventListener('resize', onWindowResized);
         scene.dispose();
