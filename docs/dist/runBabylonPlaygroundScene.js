@@ -22,6 +22,7 @@ export function runBabylonPlaygroundScene(canvasElement, createScene) {
       engine,
       scene,
       dispose: () => {
+        console.log('Shutting down Babylon scene.');
         engine.stopRenderLoop();
         window.removeEventListener('resize', onWindowResized);
         scene.dispose();
