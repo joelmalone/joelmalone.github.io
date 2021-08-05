@@ -217,49 +217,49 @@ var main = (function($) { var _ = {
 
 				});
 
-			// Touch gestures.
-				_.$viewer
-					.on('touchstart', function(event) {
+			// // Touch gestures.
+			// 	_.$viewer
+			// 		.on('touchstart', function(event) {
 
-						// Record start position.
-							_.$viewer.touchPosX = event.originalEvent.touches[0].pageX;
-							_.$viewer.touchPosY = event.originalEvent.touches[0].pageY;
+			// 			// Record start position.
+			// 				_.$viewer.touchPosX = event.originalEvent.touches[0].pageX;
+			// 				_.$viewer.touchPosY = event.originalEvent.touches[0].pageY;
 
-					})
-					.on('touchmove', function(event) {
+			// 		})
+			// 		.on('touchmove', function(event) {
 
-						// No start position recorded? Bail.
-							if (_.$viewer.touchPosX === null
-							||	_.$viewer.touchPosY === null)
-								return;
+			// 			// No start position recorded? Bail.
+			// 				if (_.$viewer.touchPosX === null
+			// 				||	_.$viewer.touchPosY === null)
+			// 					return;
 
-						// Calculate stuff.
-							var	diffX = _.$viewer.touchPosX - event.originalEvent.touches[0].pageX,
-								diffY = _.$viewer.touchPosY - event.originalEvent.touches[0].pageY;
-								boundary = 20,
-								delta = 50;
+			// 			// Calculate stuff.
+			// 				var	diffX = _.$viewer.touchPosX - event.originalEvent.touches[0].pageX,
+			// 					diffY = _.$viewer.touchPosY - event.originalEvent.touches[0].pageY;
+			// 					boundary = 20,
+			// 					delta = 50;
 
-						// Swipe left (next).
-							if ( (diffY < boundary && diffY > (-1 * boundary)) && (diffX > delta) )
-								_.next();
+			// 			// Swipe left (next).
+			// 				if ( (diffY < boundary && diffY > (-1 * boundary)) && (diffX > delta) )
+			// 					_.next();
 
-						// Swipe right (previous).
-							else if ( (diffY < boundary && diffY > (-1 * boundary)) && (diffX < (-1 * delta)) )
-								_.previous();
+			// 			// Swipe right (previous).
+			// 				else if ( (diffY < boundary && diffY > (-1 * boundary)) && (diffX < (-1 * delta)) )
+			// 					_.previous();
 
-						// Overscroll fix.
-							var	th = _.$viewer.outerHeight(),
-								ts = (_.$viewer.get(0).scrollHeight - _.$viewer.scrollTop());
+			// 			// Overscroll fix.
+			// 				var	th = _.$viewer.outerHeight(),
+			// 					ts = (_.$viewer.get(0).scrollHeight - _.$viewer.scrollTop());
 
-							if ((_.$viewer.scrollTop() <= 0 && diffY < 0)
-							|| (ts > (th - 2) && ts < (th + 2) && diffY > 0)) {
+			// 				if ((_.$viewer.scrollTop() <= 0 && diffY < 0)
+			// 				|| (ts > (th - 2) && ts < (th + 2) && diffY > 0)) {
 
-								event.preventDefault();
-								event.stopPropagation();
+			// 					event.preventDefault();
+			// 					event.stopPropagation();
 
-							}
+			// 				}
 
-					});
+			// 		});
 
 		// Main.
 
