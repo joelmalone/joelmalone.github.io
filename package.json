@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@babylonjs/core": "^4.2.0",
+    "@babylonjs/loaders": "^4.2.0",
     "lit-element": "^2.4.0",
     "lit-html": "^1.4.0"
   },

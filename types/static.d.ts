@@ -57,3 +57,8 @@ declare module '*.png' {
 }
 
 /* CUSTOM: ADD YOUR OWN HERE */
+
+declare module '*.glb' {
+  const ref: string;
+  export default ref;
+}
