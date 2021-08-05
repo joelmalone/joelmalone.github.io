@@ -140,11 +140,12 @@ export function createScene(
     }
   });
 
-  var helper = scene.createDefaultEnvironment({
+  // The Snowpack build throws Typescript errors, so I've added !s
+  const helper = scene.createDefaultEnvironment({
     enableGroundShadow: true,
-  });
+  })!;
   helper.setMainColor(BABYLON.Color3.Teal());
-  helper.ground.position.y += 0.01;
+  helper.ground!.position.y += 0.01;
 
   // Import the GLB
   BABYLON.SceneLoader.ImportMesh(

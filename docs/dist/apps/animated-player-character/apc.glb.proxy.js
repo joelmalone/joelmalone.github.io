@@ -1,0 +1,1 @@
+export default "/dist/apps/animated-player-character/apc.glb";

@@ -1,5 +1,6 @@
 {
   "imports": {
-    "@babylonjs/core/Legacy/legacy": "./@babylonjs/core/Legacy/legacy.js"
+    "@babylonjs/core/Legacy/legacy": "./@babylonjs/core/Legacy/legacy.js",
+    "@babylonjs/loaders/glTF": "./@babylonjs/loaders/glTF.js"
   }
 }
