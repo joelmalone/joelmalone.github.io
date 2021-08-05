@@ -11,12 +11,16 @@ export function createScene(
   const camera = new BABYLON.ArcRotateCamera(
     'Camera',
     0,
-    Math.PI ,
-    100,
-    BABYLON.Vector3.Zero(),
+    0,
+    50,
+    new BABYLON.Vector3(0, 0, 0),
     scene,
   );
+  camera.lowerBetaLimit = null!;
+  camera.upperBetaLimit = null!;
   camera.attachControl(canvasElement, true);
+  camera.speed = 1;
+  camera.allowUpsideDown = true;
 
   const light = new BABYLON.HemisphericLight(
     'hemi',
@@ -29,11 +33,11 @@ export function createScene(
   // scene.debugLayer.show();
 
   const shape = [
-    new BABYLON.Vector3(2, 0, 0),
+    new BABYLON.Vector3(2, -1, 0),
+    new BABYLON.Vector3(4, -0.5, 0),
     new BABYLON.Vector3(4, 0.5, 0),
-    new BABYLON.Vector3(4, 1.5, 0),
-    new BABYLON.Vector3(2, 2, 0),
-    new BABYLON.Vector3(2, 0, 0),
+    new BABYLON.Vector3(2, 1, 0),
+    new BABYLON.Vector3(2, -1, 0),
   ];
 
   const lathe = BABYLON.MeshBuilder.CreateLathe('lathe', {
@@ -43,10 +47,9 @@ export function createScene(
     sideOrientation: BABYLON.Mesh.DOUBLESIDE,
   });
   lathe.convertToFlatShadedMesh();
-
   scene.registerBeforeRender(function (...p) {
-    lathe.rotation.x += (.1 * engine.getDeltaTime()) / 1000;
-    lathe.rotation.y += (.1 * engine.getDeltaTime()) / 1000;
+    lathe.rotation.x += (0.1 * engine.getDeltaTime()) / 1000;
+    lathe.rotation.y += (0.1 * engine.getDeltaTime()) / 1000;
   });
 
   const lathe2 = BABYLON.MeshBuilder.CreateLathe('lathe2', {
@@ -57,8 +60,8 @@ export function createScene(
   });
   lathe2.convertToFlatShadedMesh();
   scene.registerBeforeRender(function (...p) {
-    lathe2.rotation.x += (.1 * engine.getDeltaTime()) / 1000;
-    lathe2.rotation.y += (.1 * engine.getDeltaTime()) / -1000;
+    lathe2.rotation.x += (0.1 * engine.getDeltaTime()) / 1000;
+    lathe2.rotation.y += (0.1 * engine.getDeltaTime()) / -1000;
   });
 
   const lathe3 = BABYLON.MeshBuilder.CreateLathe('lathe3', {
@@ -69,8 +72,8 @@ export function createScene(
   });
   lathe3.convertToFlatShadedMesh();
   scene.registerBeforeRender(function (...p) {
-    lathe3.rotation.x += (.1 * engine.getDeltaTime()) / -1000;
-    lathe3.rotation.y += (.1 * engine.getDeltaTime()) / 1000;
+    lathe3.rotation.x += (0.1 * engine.getDeltaTime()) / -1000;
+    lathe3.rotation.y += (0.1 * engine.getDeltaTime()) / 1000;
   });
 
   return scene;
