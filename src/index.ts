@@ -1,4 +1,3 @@
-import * as BABYLON from '@babylonjs/core/Legacy/legacy';
 import {
   CreateScene,
   runBabylonPlaygroundScene,

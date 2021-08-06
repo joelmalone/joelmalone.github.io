@@ -52,33 +52,16 @@ function createAndAddCameraToScene(
   canvas: HTMLCanvasElement,
   scene: BABYLON.Scene,
 ) {
-  // const camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI / 2, Math.PI / 2, 100, BABYLON.Vector3.Zero(), scene);
-  // camera.attachControl(canvas, true);
-
-  // This creates and positions a free camera (non-mesh)
-  var camera = new BABYLON.FreeCamera(
-    'camera1',
-    new BABYLON.Vector3(0, 20, -0.0001),
+  const camera = new BABYLON.ArcRotateCamera(
+    'Camera',
+    Math.PI / 6,
+    Math.PI / 4,
+    20,
+    BABYLON.Vector3.Zero(),
     scene,
   );
-
-  // Enable mouse wheel inputs.
-  camera.inputs.addMouseWheel();
-
-  // Change the mouse wheel Y axis to controll the cameras height in the scene:
-  //camera.inputs.attached["mousewheel"].wheelYMoveRelative = BABYLON.Coordinate.Y;
-
-  // Revese the mouse wheel Y axis direction:
-  // camera.inputs.attached["mousewheel"].wheelPrecisionY = -1;
-
-  // This targets the camera to scene origin
+  camera.attachControl(canvas, false);
   camera.setTarget(BABYLON.Vector3.Zero());
-
-  // TODO: setting the speed to 50 reduces the mouse drag look sensitivity
-  // camera.speed = 50
-
-  // This attaches the camera to the canvas
-  camera.attachControl(false);
 
   return camera;
 }
