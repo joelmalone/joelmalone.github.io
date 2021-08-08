@@ -2,6 +2,7 @@
   "imports": {
     "@babylonjs/core/Legacy/legacy": "./@babylonjs/core/Legacy/legacy.js",
     "@babylonjs/loaders/glTF": "./@babylonjs/loaders/glTF.js",
+    "@babylonjs/materials": "./@babylonjs/materials.js",
     "cannon": "./cannon.js"
   }
 }

@@ -54,7 +54,7 @@ export function createScene(
     directionalLight,
   );
   // shadowGenerator.debug = true;
-  shadowGenerator.setDarkness(0.5);
+  shadowGenerator.setDarkness(0.9);
   shadowGenerator.shadowMaxZ = 100;
 
   var hemisphericLight = new BABYLON.HemisphericLight(
