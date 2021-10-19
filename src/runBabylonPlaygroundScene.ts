@@ -16,8 +16,7 @@ export function runBabylonPlaygroundScene(
 
     const scene = createScene(engine, canvasElement); //Call the createScene function
 
-    var camera =
-      scene.cameras[0] || createAndAddCameraToScene(canvasElement, scene);
+    scene.cameras[0] || createAndAddCameraToScene(canvasElement, scene);
 
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {

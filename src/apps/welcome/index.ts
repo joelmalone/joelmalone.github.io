@@ -47,7 +47,7 @@ export function createScene(
     sideOrientation: BABYLON.Mesh.DOUBLESIDE,
   });
   lathe.convertToFlatShadedMesh();
-  scene.registerBeforeRender(function (...p) {
+  scene.registerBeforeRender(function () {
     lathe.rotation.x += (0.1 * engine.getDeltaTime()) / 1000;
     lathe.rotation.y += (0.1 * engine.getDeltaTime()) / 1000;
   });
@@ -59,7 +59,7 @@ export function createScene(
     sideOrientation: BABYLON.Mesh.DOUBLESIDE,
   });
   lathe2.convertToFlatShadedMesh();
-  scene.registerBeforeRender(function (...p) {
+  scene.registerBeforeRender(function () {
     lathe2.rotation.x += (0.1 * engine.getDeltaTime()) / 1000;
     lathe2.rotation.y += (0.1 * engine.getDeltaTime()) / -1000;
   });
@@ -71,7 +71,7 @@ export function createScene(
     sideOrientation: BABYLON.Mesh.DOUBLESIDE,
   });
   lathe3.convertToFlatShadedMesh();
-  scene.registerBeforeRender(function (...p) {
+  scene.registerBeforeRender(function () {
     lathe3.rotation.x += (0.1 * engine.getDeltaTime()) / -1000;
     lathe3.rotation.y += (0.1 * engine.getDeltaTime()) / 1000;
   });

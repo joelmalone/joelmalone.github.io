@@ -10,7 +10,7 @@ if (!canvas) {
 
 const babylonAppName = new URL(window.location.toString()).searchParams.get('app');
 
-import(`./apps/${babylonAppName}/index.js`).then((importedApp) => {
+import(`./apps/${babylonAppName}/index.ts`).then((importedApp) => {
   const createScene = importedApp.createScene as CreateScene;
 
   (window as any).babylonScene = runBabylonPlaygroundScene(

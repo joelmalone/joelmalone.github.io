@@ -19,7 +19,7 @@ async function activateBabylonApp(
 
   deactivateCurrentApp();
 
-  const importedApp = await import(`./apps/${babylonAppName}/index.js`);
+  const importedApp = await import(`./apps/${babylonAppName}/index.ts`);
   const createScene = importedApp.createScene as CreateScene;
 
   babylonScene = runBabylonPlaygroundScene(canvas, (engine, canvas) => {

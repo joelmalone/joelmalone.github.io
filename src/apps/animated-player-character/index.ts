@@ -2,9 +2,8 @@ import * as BABYLON from '@babylonjs/core/Legacy/legacy';
 import { PointerEventTypes } from '@babylonjs/core/Legacy/legacy';
 import '@babylonjs/loaders/glTF';
 
-import CharacterGLB from './apc.glb';
+import CharacterGLB from './apc.glb?url';
 
-const SPEED = 1.6;
 /**
  * Observes player input and transforms it into a character movement state observable.
  *
@@ -202,7 +201,7 @@ export function createScene(
         'leftAnimation',
         'rightAnimation',
       ];
-      const animationSubscription = scene.onBeforeAnimationsObservable.add(
+      scene.onBeforeAnimationsObservable.add(
         () => {
           // Observe the current movement vector and reflect it in the target weights
           // Note: walk never goes to a weight of zero. If we set it to 0, then it
@@ -279,7 +278,7 @@ export function createScene(
       console.debug('hax', hax);
       Object.assign(window, { hax });
     },
-    function (evt) {},
+    function () {},
   );
 
   return scene;

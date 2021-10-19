@@ -26,7 +26,5 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-# Snowpack
-.snowpack
-build
+dist
 node_modules

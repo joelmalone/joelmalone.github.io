@@ -89,9 +89,6 @@ export function createScene(
 
           if (lastPoint && thisPoint) {
             const delta = thisPoint.subtract(lastPoint);
-            const mag = delta.length();
-            console.log(mag);
-
             scene.meshes.forEach((m) => {
               const dist = m.position.subtract(thisPoint).length();
               if (dist < 3) {
