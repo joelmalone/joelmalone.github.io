@@ -3,7 +3,8 @@ import { CubeTexture } from '@babylonjs/core/Legacy/legacy';
 import CANNON from 'cannon';
 window.CANNON = CANNON;
 
-import Env from './environment-day-country.env?url';
+import Env from './environment-sunset.env?url';
+// import Env from './environment-night.env?url';
 
 export function createScene(
   engine: BABYLON.Engine,
