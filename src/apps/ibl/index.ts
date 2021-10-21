@@ -1,10 +1,9 @@
 import * as BABYLON from '@babylonjs/core/Legacy/legacy';
 import { CubeTexture } from '@babylonjs/core/Legacy/legacy';
-import { ShadowOnlyMaterial } from '@babylonjs/materials';
 import CANNON from 'cannon';
 window.CANNON = CANNON;
 
-import Env from './environment.env?url';
+import Env from './environment-day-country.env?url';
 
 export function createScene(
   engine: BABYLON.Engine,
@@ -17,87 +16,80 @@ export function createScene(
   const camera = new BABYLON.ArcRotateCamera(
     'Camera',
     Math.PI / 6,
-    Math.PI / 4,
-    50,
-    BABYLON.Vector3.Zero(),
+    (75 * Math.PI) / 180,
+    20,
+    new BABYLON.Vector3(0, 2.5, 0),
     scene,
   );
-  camera.setTarget(BABYLON.Vector3.Zero());
+  // camera.setTarget(BABYLON.Vector3.Zero());
   camera.attachControl(canvasElement);
 
   scene.enablePhysics(null, new BABYLON.CannonJSPlugin());
-  // scene.clearColor = BABYLON.Color3.White().toColor4();
 
-  // var environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(Env, scene, null, false);
-
-  const environmentHelper = scene.createDefaultEnvironment({
-    environmentTexture: Env,
-    skyboxTexture: Env,
-    skyboxSize: 1000,
-  });
-  environmentHelper.skyboxTexture.level = 20;
+  var skyboxTexture = new BABYLON.CubeTexture(Env, scene);
+  var myskybox = scene.createDefaultSkybox(skyboxTexture, true, 10000, .075);
 
   var counter = 0;
   scene.onBeforeRenderObservable.add(() => {
     const deltaTime = engine.getDeltaTime() / 1000;
-    counter += deltaTime / 10;
-    environmentHelper.skybox.rotation.set(0, -counter, 0);
+    counter += deltaTime / 3;
+    myskybox!.rotation.set(0, -counter, 0);
     (scene.environmentTexture as CubeTexture).setReflectionTextureMatrix(
       BABYLON.Matrix.RotationY(counter),
     );
   });
 
-  const ground = BABYLON.MeshBuilder.CreateGround(
-    'ground',
-    { width: 1000, height: 1000 },
+  var pedestalMaterial = new BABYLON.PBRMetallicRoughnessMaterial(
+    'pedestalMaterial',
     scene,
   );
-  ground.receiveShadows = true;
-  ground.material = new ShadowOnlyMaterial('groundMat', scene);
-  ground.physicsImpostor = new BABYLON.PhysicsImpostor(
-    ground,
-    BABYLON.PhysicsImpostor.BoxImpostor,
-    { mass: 0, restitution: 0.1 },
+  pedestalMaterial.metallic = 0.1;
+  pedestalMaterial.roughness = 0.1;
+
+  const pedestalTop = BABYLON.MeshBuilder.CreateCylinder(
+    'cylinder',
+    {
+      diameter: 15,
+      faceColors: [ 
+        new BABYLON.Color3(.01, .01, .01).toColor4(),
+        new BABYLON.Color3(.01, .01, .01).toColor4(),
+        new BABYLON.Color3(.01, .01, .01).toColor4(),
+      ]
+    },
+    scene,
+  );
+  pedestalTop.material = pedestalMaterial;
+  pedestalTop.physicsImpostor = new BABYLON.PhysicsImpostor(
+    pedestalTop,
+    BABYLON.PhysicsImpostor.CylinderImpostor,
+    { mass: 0, restitution: 0.2 },
     scene,
   );
 
-  // addNewCubeCharacters(scene, ground, shadowGenerator);
-  addNewCubeCharacters(scene, ground, null);
+  const pedestalShaft = BABYLON.MeshBuilder.CreateCylinder(
+    'cylinder',
+    {
+      diameter: 10,
+      height: 10,
+      faceColors: [ 
+        new BABYLON.Color3(0, 0, 0).toColor4(),
+        new BABYLON.Color3(0, 0, 0).toColor4(),
+        new BABYLON.Color3(0, 0, 0).toColor4(),
+      ]
+  },
+    scene,
+  );
+  pedestalShaft.material = pedestalMaterial;
+  pedestalShaft.position.set(0, -5, 0);
 
-  var touching = false;
-  var lastPoint: BABYLON.Vector3 | undefined | null = null;
-  scene.onPointerObservable.add((eventData) => {
-    switch (eventData.type) {
-      case BABYLON.PointerEventTypes.POINTERDOWN:
-        touching = true;
-        break;
-      case BABYLON.PointerEventTypes.POINTERUP:
-        touching = false;
-        lastPoint = null;
-        break;
-      case BABYLON.PointerEventTypes.POINTERMOVE:
-        if (touching) {
-          var pickResult = scene.pick(
-            scene.pointerX,
-            scene.pointerY,
-            (m) => m === ground,
-          );
-          const thisPoint = pickResult?.pickedPoint;
+  var cubesMaterial = new BABYLON.PBRMetallicRoughnessMaterial(
+    'cubesMaterial',
+    scene,
+  );
+  cubesMaterial.metallic = 0;
+  cubesMaterial.roughness = 0;
 
-          if (lastPoint && thisPoint) {
-            const delta = thisPoint.subtract(lastPoint);
-            scene.meshes.forEach((m) => {
-              const dist = m.position.subtract(thisPoint).length();
-              if (dist < 3) {
-                m.applyImpulse(delta.scale(7), m.absolutePosition);
-              }
-            });
-          }
-          lastPoint = thisPoint;
-        }
-        break;
-    }
-  });
+  addNewCubeCharactersWithDelay(scene, cubesMaterial);
 
   function debug() {
     scene.debugLayer.show();
@@ -112,14 +104,12 @@ export function createScene(
   return scene;
 }
 
-async function addNewCubeCharacters(
+async function addNewCubeCharactersWithDelay(
   scene: BABYLON.Scene,
-  ground: BABYLON.AbstractMesh,
-  shadowGenerator?: BABYLON.ShadowGenerator,
+  material: BABYLON.PBRMetallicRoughnessMaterial,
 ) {
   for (var i = 0; i < 100; i++) {
-    const mesh = addNewCubeCharacter(scene, ground);
-    shadowGenerator?.addShadowCaster(mesh, true);
+    addNewCubeCharacter(scene, material);
 
     await delay(10);
   }
@@ -127,7 +117,7 @@ async function addNewCubeCharacters(
 
 function addNewCubeCharacter(
   scene: BABYLON.Scene,
-  ground: BABYLON.AbstractMesh,
+  material: BABYLON.PBRMetallicRoughnessMaterial,
 ) {
   // TODO: this looks ok, but i guessed the numbers, so read this:
   // https://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
@@ -149,11 +139,7 @@ function addNewCubeCharacter(
     },
     scene,
   );
-  mesh.receiveShadows = true;
 
-  var material = new BABYLON.PBRMetallicRoughnessMaterial('material', scene);
-  material.metallic = 0.5;
-  material.roughness = 0.5;
   mesh.material = material;
 
   mesh.position.set(
