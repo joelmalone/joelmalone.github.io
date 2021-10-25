@@ -1,13 +1,13 @@
 import * as BABYLON from '@babylonjs/core/Legacy/legacy';
 
-export type CreateScene = (
+export type CreateBabylonScene = (
   engine: BABYLON.Engine,
   canvasElement: HTMLCanvasElement,
 ) => BABYLON.Scene;
 
 export function runBabylonPlaygroundScene(
   canvasElement: HTMLCanvasElement,
-  createScene: CreateScene,
+  createScene: CreateBabylonScene,
 ) {
   const engine = new BABYLON.Engine(canvasElement, true); // Generate the BABYLON 3D engine
 
@@ -30,17 +30,13 @@ export function runBabylonPlaygroundScene(
     // Watch for browser/canvas resize events
     window.addEventListener('resize', onWindowResized);
 
-    return {
-      engine,
-      scene,
-      dispose: () => {
-        console.log('Shutting down Babylon scene.');
+    return () => {
+      console.log('Shutting down Babylon scene.');
 
-        engine.stopRenderLoop();
-        window.removeEventListener('resize', onWindowResized);
-        scene.dispose();
-        engine.dispose();
-      },
+      engine.stopRenderLoop();
+      window.removeEventListener('resize', onWindowResized);
+      scene.dispose();
+      engine.dispose();
     };
   } finally {
     engine.hideLoadingUI();
