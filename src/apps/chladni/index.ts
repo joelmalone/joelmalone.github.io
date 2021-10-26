@@ -96,7 +96,6 @@ export function startCanvasApp(
   }
 
   var interval = setInterval(() => {
-    console.log('goat');
     m += 0.005;
     // m--;
     // n++;
