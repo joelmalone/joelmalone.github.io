@@ -1,3 +1,5 @@
+const DownscaleFactor = 1;
+
 export interface CanvasApp {
   draw: () => void;
   dispose: () => void;
@@ -20,9 +22,9 @@ export function runCanvasApp(
 
   function onWindowResized() {
     // engine.resize();
-    canvasElement.width = canvasElement.clientWidth;
-    canvasElement.height = canvasElement.clientHeight;
-    app.draw()
+    canvasElement.width = canvasElement.clientWidth / DownscaleFactor;
+    canvasElement.height = canvasElement.clientHeight / DownscaleFactor;
+    app.draw();
   }
 
   // // Watch for browser/canvas resize events
