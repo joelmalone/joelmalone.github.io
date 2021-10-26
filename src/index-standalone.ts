@@ -1,23 +1,23 @@
 import {
-  CreateScene,
+  CreateBabylonScene,
   runBabylonPlaygroundScene,
 } from './runBabylonPlaygroundScene';
+import { runCanvasApp, StartCanvasApp } from './runCanvasApp';
 
 const canvas = document.querySelector('#renderCanvas') as HTMLCanvasElement;
 if (!canvas) {
   throw new Error();
 }
 
-const babylonAppName = new URL(window.location.toString()).searchParams.get('app');
+const appName = new URL(window.location.toString()).searchParams.get('app');
 
-import(`./apps/${babylonAppName}/index.ts`).then((importedApp) => {
-  const createScene = importedApp.createScene as CreateScene;
+import(`./apps/${appName}/index.ts`).then((importedApp) => {
+  const startCanvasApp = importedApp.startCanvasApp as StartCanvasApp;
+  const createBabylonScene = importedApp.createScene as CreateBabylonScene;
 
-  (window as any).babylonScene = runBabylonPlaygroundScene(
-    canvas,
-    (engine, canvas) => {
-      console.log('Initialise scene with this data.', babylonAppName);
-      return createScene(engine, canvas);
-    },
-  );
+  if (startCanvasApp) {
+    runCanvasApp(canvas, startCanvasApp);
+  } else if (createBabylonScene) {
+    runBabylonPlaygroundScene(canvas, createBabylonScene);
+  }
 });
