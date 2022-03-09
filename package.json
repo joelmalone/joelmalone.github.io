@@ -8,9 +8,9 @@
     "deploy": "rm -rf docs && yarn build && cp -r dist docs"
   },
   "dependencies": {
-    "@babylonjs/core": "^5.0.0-alpha.56",
-    "@babylonjs/loaders": "^5.0.0-alpha.56",
-    "@babylonjs/materials": "^5.0.0-alpha.56",
+    "@babylonjs/core": "^5.0.0-beta.11",
+    "@babylonjs/loaders": "^5.0.0-beta.11",
+    "@babylonjs/materials": "^5.0.0-beta.11",
     "cannon": "^0.6.2"
   },
   "devDependencies": {
