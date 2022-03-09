@@ -1,26 +1,39 @@
-# New Project
+# joelmalone.com.au
 
-> ✨ Bootstrapped with Create Snowpack App (CSA).
+This website was bootstrapped, developed and built with [Vite](https://vitejs.dev/guide/).
 
-## Available Scripts
+It looks good because of the [Lens by Pixelarity](https://pixelarity.com/lens) HTML5 template available from [pixelarity.com](pixelarity.com).
 
-### npm start
+The 3D stuff runs on [babylon.js](https://www.babylonjs.com/).
 
-Runs the app in the development mode.
-Open http://localhost:8080 to view it in the browser.
+## How to do the things
 
-The page will reload if you make edits.
-You will also see any lint errors in the console.
+### Develop
 
-### npm run build
+To run the app locally, using Vite's development server, do this:
 
-Builds the app for production to the `dist/` folder.
-It correctly bundles the app in production mode and optimizes the build for the best performance.
+> ```bsh
+> yarn dev
+> ```
 
-## Directives
+### Build
 
-In case you need to add a directive like `classMap` you should add the extension to the import:
+To build the app using Vite, give this bad boy a slap:
 
-```
-import { classMap } from "lit-html/directives/class-map.js";
-```
+> ```bsh
+> yarn build
+> ```
+
+The output goes into `dist/`.
+
+### Deploy
+
+To build the app and get it ready for deployment to the live website, squanch this:
+
+> ```bsh
+> yarn deploy
+> ```
+
+That will build the project and then copy the output into the `docs/` directory.
+
+When the `docs/` directory is committed and pushed into git, the live website will be updated automatically.
