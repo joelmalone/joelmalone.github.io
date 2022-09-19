@@ -32,7 +32,7 @@ export function startCanvasApp(
   var frameDurations: number[] = [];
 
   function draw() {
-    // Create an imageDta to fit the entire canvas
+    // Create an imageData to fit the entire canvas
     const imageData = context2d.createImageData(
       canvasElement.width,
       canvasElement.height,
