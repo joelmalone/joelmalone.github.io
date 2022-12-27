@@ -21,13 +21,12 @@ export function runCanvasApp(
   const app = startApp(context, canvasElement);
 
   function onWindowResized() {
-    // engine.resize();
     canvasElement.width = canvasElement.clientWidth / DownscaleFactor;
     canvasElement.height = canvasElement.clientHeight / DownscaleFactor;
     app.draw();
   }
 
-  // // Watch for browser/canvas resize events
+  // Watch for browser/canvas resize events
   window.addEventListener('resize', onWindowResized);
 
   onWindowResized();
