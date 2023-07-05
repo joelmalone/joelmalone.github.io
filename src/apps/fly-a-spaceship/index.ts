@@ -18,7 +18,7 @@ import {
 } from '@babylonjs/core/Legacy/legacy';
 import '@babylonjs/loaders/glTF';
 
-export function createScene(engine: Engine, canvas: HTMLCanvasElement): Scene {
+export function createScene(engine: Engine): Scene {
   // Create a BabylonJS scene
   const scene = new Scene(engine);
   // And also, let's set the scene's "clear colour" to black
