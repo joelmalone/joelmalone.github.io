@@ -30,9 +30,15 @@ export function runBabylonPlaygroundScene(
     // Watch for browser/canvas resize events
     window.addEventListener('resize', onWindowResized);
 
+    // Only import hax if URL has ?hax
+    const hax = new URLSearchParams(location.search).has('hax')
+      ? import('./hax').then(({ attachHax }) => attachHax(scene))
+      : null;
+
     return () => {
       console.log('Shutting down Babylon scene.');
 
+      hax && hax.then(({ dispose }) => dispose());
       engine.stopRenderLoop();
       window.removeEventListener('resize', onWindowResized);
       scene.dispose();

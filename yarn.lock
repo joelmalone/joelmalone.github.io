@@ -7,6 +7,25 @@
   resolved "https://registry.yarnpkg.com/@babylonjs/core/-/core-6.10.0.tgz#0b36148c0abd7d22fa359918deb89de1c425c1c0"
   integrity sha512-iXRoM/CYl8aYtZQVeQ3+4nFuFVnYlfWmNNaJG0aTPM4ziNzQ5iZ+satX2GK+XNkYKl45i2Sdq4STkRvfnlKheQ==
 
+"@babylonjs/gui-editor@^6.10.0":
+  version "6.10.0"
+  resolved "https://registry.yarnpkg.com/@babylonjs/gui-editor/-/gui-editor-6.10.0.tgz#6d8b13e03e2de01c55632484699bbc6a6f3ee5f0"
+  integrity sha512-Y0gVxrhxoPbBHIZpM4TSf4hAFqMpvOfwM0nBILGbFeCqphl06gwRYuikWzHeKBphwqer20aj78Hcrlu/3G0UYg==
+
+"@babylonjs/gui@^6.10.0":
+  version "6.10.0"
+  resolved "https://registry.yarnpkg.com/@babylonjs/gui/-/gui-6.10.0.tgz#5354ec05ace35c21826c1013b6529e3ff7fda495"
+  integrity sha512-yxtEqAzkuPSmTNqH6CTqN6a/HJ3qkrmW3MbHi5RbbAEtYjTg+xGbdfVB72muk4o35pcHDpebAWeMK4EOmCSzWg==
+
+"@babylonjs/inspector@^6.10.0":
+  version "6.10.0"
+  resolved "https://registry.yarnpkg.com/@babylonjs/inspector/-/inspector-6.10.0.tgz#24875220abed238f756007f65e7511c86753cbb6"
+  integrity sha512-tDVd8A7ACN1D52dnm1nDgjIxqtjgQuStHaSdnKjDGA/LYnzMkvCbediXcGhtLoBkM/MSRTDxxJJEPILZuKuZvw==
+  dependencies:
+    "@fortawesome/fontawesome-svg-core" "^6.1.0"
+    "@fortawesome/free-regular-svg-icons" "^6.0.0"
+    "@fortawesome/free-solid-svg-icons" "^6.0.0"
+
 "@babylonjs/loaders@^6.10.0":
   version "6.10.0"
   resolved "https://registry.yarnpkg.com/@babylonjs/loaders/-/loaders-6.10.0.tgz#dd798195e89badb59dfa1cda81339c2a7ff3da14"
@@ -16,6 +35,11 @@
   version "6.10.0"
   resolved "https://registry.yarnpkg.com/@babylonjs/materials/-/materials-6.10.0.tgz#d9b0222e7401961f5f6486ae8909ce42b60f5170"
   integrity sha512-QCC7F0OlM5b594dx4A1GUBlew0FeKjA8t2TH8bCK9GIYxzJQqoJcdiywhic1Q7GXNlvNEOrXGYSy3caPaCXMdw==
+
+"@babylonjs/serializers@^6.10.0":
+  version "6.10.0"
+  resolved "https://registry.yarnpkg.com/@babylonjs/serializers/-/serializers-6.10.0.tgz#cef988163753ef196904549511db4e6b73671fd0"
+  integrity sha512-NZDaVWg55VKIVxtcYVTRBc22Bq/WeONNCENF1uACFWnQJ4QzZpn8bRzXedlIODmBcR7huxLWX1sebsDNzduHSQ==
 
 "@esbuild/android-arm64@0.17.19":
   version "0.17.19"
@@ -126,6 +150,32 @@
   version "0.17.19"
   resolved "https://registry.yarnpkg.com/@esbuild/win32-x64/-/win32-x64-0.17.19.tgz#8cfaf2ff603e9aabb910e9c0558c26cf32744061"
   integrity sha512-lAhycmKnVOuRYNtRtatQR1LPQf2oYCkRGkSFnseDAKPl8lu5SOsK/e1sXe5a0Pc5kHIHe6P2I/ilntNv2xf3cA==
+
+"@fortawesome/fontawesome-common-types@6.4.0":
+  version "6.4.0"
+  resolved "https://registry.yarnpkg.com/@fortawesome/fontawesome-common-types/-/fontawesome-common-types-6.4.0.tgz#88da2b70d6ca18aaa6ed3687832e11f39e80624b"
+  integrity sha512-HNii132xfomg5QVZw0HwXXpN22s7VBHQBv9CeOu9tfJnhsWQNd2lmTNi8CSrnw5B+5YOmzu1UoPAyxaXsJ6RgQ==
+
+"@fortawesome/fontawesome-svg-core@^6.1.0":
+  version "6.4.0"
+  resolved "https://registry.yarnpkg.com/@fortawesome/fontawesome-svg-core/-/fontawesome-svg-core-6.4.0.tgz#3727552eff9179506e9203d72feb5b1063c11a21"
+  integrity sha512-Bertv8xOiVELz5raB2FlXDPKt+m94MQ3JgDfsVbrqNpLU9+UE2E18GKjLKw+d3XbeYPqg1pzyQKGsrzbw+pPaw==
+  dependencies:
+    "@fortawesome/fontawesome-common-types" "6.4.0"
+
+"@fortawesome/free-regular-svg-icons@^6.0.0":
+  version "6.4.0"
+  resolved "https://registry.yarnpkg.com/@fortawesome/free-regular-svg-icons/-/free-regular-svg-icons-6.4.0.tgz#cacc53bd8d832d46feead412d9ea9ce80a55e13a"
+  integrity sha512-ZfycI7D0KWPZtf7wtMFnQxs8qjBXArRzczABuMQqecA/nXohquJ5J/RCR77PmY5qGWkxAZDxpnUFVXKwtY/jPw==
+  dependencies:
+    "@fortawesome/fontawesome-common-types" "6.4.0"
+
+"@fortawesome/free-solid-svg-icons@^6.0.0":
+  version "6.4.0"
+  resolved "https://registry.yarnpkg.com/@fortawesome/free-solid-svg-icons/-/free-solid-svg-icons-6.4.0.tgz#48c0e790847fa56299e2f26b82b39663b8ad7119"
+  integrity sha512-kutPeRGWm8V5dltFP1zGjQOEAzaLZj4StdQhWVZnfGFCvAPVvHh8qk5bRrU4KXnRRRNni5tKQI9PBAdI6MP8nQ==
+  dependencies:
+    "@fortawesome/fontawesome-common-types" "6.4.0"
 
 "@types/cannon@^0.1.7":
   version "0.1.7"
