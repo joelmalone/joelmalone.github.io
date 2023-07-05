@@ -40,21 +40,7 @@ export function createScene(engine: Engine, canvas: HTMLCanvasElement): Scene {
   );
   sunLight.intensity = 5;
 
-  // Start a render loop - basically, this will instruct BabylonJS to continuously re-render the scene
-  engine.runRenderLoop(() => {
-    scene.render();
-  });
-
-  // Bind to the window's resize DOM event, so that we can update the <canvas> dimensions to match;
-  // this is needed because the <canvas> render context doesn't automaticaly update itself
-  const onWindowResize = () => {
-    canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
-  };
-  // You can see the problem if you disable this next line, and then resize the window - the scene will become pixelated
-  window.addEventListener('resize', onWindowResize);
-
-  // Create a UniversalCamera that we will ue as a "chase cam"
+  // Create a UniversalCamera that we will use as a "chase cam"
   const camera = new UniversalCamera(
     'UniversalCamera',
     new Vector3(0, 0, 0),
