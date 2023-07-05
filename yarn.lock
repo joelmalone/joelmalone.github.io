@@ -2,39 +2,25 @@
 # yarn lockfile v1
 
 
-"@babylonjs/core@^5.9.0":
-  version "5.9.0"
-  resolved "https://registry.yarnpkg.com/@babylonjs/core/-/core-5.9.0.tgz#141eed23f2f8453c00caa6ec325635f29d13a7c1"
-  integrity sha512-plKDulA2Ia8hUwxneF74JX6BPqmO72Xxi1lD2WEfXBymIqTiK5KaxwD19hFyj+VPXZ3ZDLV0TFM2nNsBb300hw==
-  dependencies:
-    tslib "^2.3.1"
+"@babylonjs/core@^6.10.0":
+  version "6.10.0"
+  resolved "https://registry.yarnpkg.com/@babylonjs/core/-/core-6.10.0.tgz#0b36148c0abd7d22fa359918deb89de1c425c1c0"
+  integrity sha512-iXRoM/CYl8aYtZQVeQ3+4nFuFVnYlfWmNNaJG0aTPM4ziNzQ5iZ+satX2GK+XNkYKl45i2Sdq4STkRvfnlKheQ==
 
-"@babylonjs/loaders@^5.9.0":
-  version "5.9.0"
-  resolved "https://registry.yarnpkg.com/@babylonjs/loaders/-/loaders-5.9.0.tgz#5367e398e91e7f717252186b31053f6d994e1529"
-  integrity sha512-pOoLcWvGKMsJ+csQu2ua9gbetguV6yTkkbqHky3hjl/OzEooYnmrLDcDGUnYCXdjgOVX6JfHcAt81E896bZlyw==
-  dependencies:
-    "@babylonjs/core" "^5.9.0"
-    babylonjs-gltf2interface "^5.9.0"
-    tslib "^2.3.1"
+"@babylonjs/loaders@^6.10.0":
+  version "6.10.0"
+  resolved "https://registry.yarnpkg.com/@babylonjs/loaders/-/loaders-6.10.0.tgz#dd798195e89badb59dfa1cda81339c2a7ff3da14"
+  integrity sha512-o74WWyDohWLU/yhPjcm1ndDa7hTdtgMgWSew7T1mZNgNJvAOgEPz1XWv79+77XfiKc8MKaZXj14RUm2/7Rf1Qg==
 
-"@babylonjs/materials@^5.9.0":
-  version "5.9.0"
-  resolved "https://registry.yarnpkg.com/@babylonjs/materials/-/materials-5.9.0.tgz#54c4c02d6d50fd06750c4e9d5e37af7aa326f7e8"
-  integrity sha512-sMmCOzs9GDPtlKh55umrAt2WYI9E+K4rz8/Ice1TTntd2oKE3RpVz/AYCBz4OQyZjbtT1nO4WWyrZmwBDHiSww==
-  dependencies:
-    "@babylonjs/core" "^5.9.0"
-    tslib "^2.3.1"
+"@babylonjs/materials@^6.10.0":
+  version "6.10.0"
+  resolved "https://registry.yarnpkg.com/@babylonjs/materials/-/materials-6.10.0.tgz#d9b0222e7401961f5f6486ae8909ce42b60f5170"
+  integrity sha512-QCC7F0OlM5b594dx4A1GUBlew0FeKjA8t2TH8bCK9GIYxzJQqoJcdiywhic1Q7GXNlvNEOrXGYSy3caPaCXMdw==
 
 "@types/cannon@^0.1.7":
   version "0.1.7"
   resolved "https://registry.yarnpkg.com/@types/cannon/-/cannon-0.1.7.tgz#207054af280bcb6c14febd8f8c886c51b89fb5b2"
   integrity sha512-D2BpUjnKI6B8+VkUHXWHqDziR6V3nllRwKsSCYajJusWOfGxuaF9s7gqrYnSAX7G2ykbZ+YWyOCOz1Gk3RRVrw==
-
-babylonjs-gltf2interface@^5.9.0:
-  version "5.9.0"
-  resolved "https://registry.yarnpkg.com/babylonjs-gltf2interface/-/babylonjs-gltf2interface-5.9.0.tgz#0c9fd2a408a5ae3aad34ddf607652c031ae9b58f"
-  integrity sha512-cyHOWEXYEqc9oGbHuCEMhVj4GTF8UEb0SmxnwSdfw7omwN6lTqv6VyIjHBrKFa1FFf4moo5a4KAHpW/Q3KsUrg==
 
 cannon@^0.6.2:
   version "0.6.2"
@@ -216,11 +202,6 @@ source-map-js@^0.6.2:
   version "0.6.2"
   resolved "https://registry.yarnpkg.com/source-map-js/-/source-map-js-0.6.2.tgz#0bb5de631b41cfbda6cfba8bd05a80efdfd2385e"
   integrity sha512-/3GptzWzu0+0MBQFrDKzw/DvvMTUORvgY6k6jd/VS6iCR4RDTKWH6v6WPwQoUO8667uQEf9Oe38DxAYWY5F/Ug==
-
-tslib@^2.3.1:
-  version "2.3.1"
-  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.3.1.tgz#e8a335add5ceae51aa261d32a490158ef042ef01"
-  integrity sha512-77EbyPPpMz+FRFRuAFlWMtmgUWGe9UOG2Z25NqCwiIjRhOf5iKGuzSe5P2w1laq+FkRy4p+PCuVkJSGkzTEKVw==
 
 typescript@^4.3.2:
   version "4.4.4"
