@@ -21,6 +21,8 @@ import {
   PhysicsAggregate,
   PhysicsShapeType,
   Mesh,
+  Color3,
+  StandardMaterial,
 } from '@babylonjs/core/Legacy/legacy';
 import HavokPhysics from '@babylonjs/havok';
 import '@babylonjs/loaders/glTF';
@@ -38,7 +40,9 @@ export function createScene(engine: Engine, canvas: HTMLCanvasElement): Scene {
 
 async function populateScene(scene: Scene) {
   // And also, let's set the scene's "clear colour" to black
-  scene.clearColor = new Color4(0, 0, 0);
+  const sceneColor3 = new Color3();
+  Color3.HSVtoRGBToRef(30, 1, .9, sceneColor3);
+  scene.clearColor = sceneColor3.toColor4();
 
   const camera = new ArcRotateCamera(
     'camera',
@@ -53,10 +57,10 @@ async function populateScene(scene: Scene) {
   // Create an ambient light with low intensity, so the dark parts of the scene aren't pitch black
   var ambientLight = new HemisphericLight(
     'ambient light',
-    new Vector3(0, 1, 0),
+    new Vector3(0, 2, -1),
     scene,
   );
-  ambientLight.intensity = 1;
+  ambientLight.intensity = 0.7;
 
   // Tell HavokPhysics() where the .wasm file is located
   function locateFile(): string {
@@ -67,9 +71,17 @@ async function populateScene(scene: Scene) {
   const havokPlugin = new HavokPlugin(true, havokInstance);
   scene.enablePhysics(new Vector3(0, -9.8, 0), havokPlugin);
 
+  const color3 = new Color3(0.1, 0.2, 0.3);
+  Color3.HSVtoRGBToRef(30 + 180, 0.9, .9, color3);
+  const color4 = color3.toColor4();
   const wall = MeshBuilder.CreateBox(
     'wall',
-    { width: 10, height: 18, depth: 1 },
+    {
+      width: 10,
+      height: 18,
+      depth: 1,
+      faceColors: [color4, color4, color4, color4, color4, color4],
+    },
     scene,
   );
   // Slight tilt
@@ -114,6 +126,11 @@ function spawnBar(scene: Scene, wall: Mesh, position: Vector3, angle: number) {
 function spawnMarble(scene: Scene, position: Vector3) {
   const sphere = MeshBuilder.CreateSphere('marble', { diameter: 1 }, scene);
   sphere.position = position;
+
+  // https://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
+  const myMaterial = new StandardMaterial('myMaterial', scene);
+  Color3.HSVtoRGBToRef(Math.random() * 360, .8,.9, myMaterial.diffuseColor);
+  sphere.material = myMaterial;
 
   const aggregate = new PhysicsAggregate(
     sphere,
