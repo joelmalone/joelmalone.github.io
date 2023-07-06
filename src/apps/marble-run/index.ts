@@ -1,18 +1,8 @@
 import {
-  UniversalCamera,
   Engine,
-  IMouseEvent,
-  PointerEventTypes,
   DirectionalLight,
   HemisphericLight,
-  SceneLoader,
-  Texture,
-  Color4,
-  Scalar,
-  Quaternion,
-  AbstractMesh,
   TransformNode,
-  ParticleSystem,
   Scene,
   Vector3,
   MeshBuilder,
@@ -30,7 +20,7 @@ import '@babylonjs/loaders/glTF';
 
 import WasmURL from '/node_modules/@babylonjs/havok/lib/esm/HavokPhysics.wasm?url';
 
-export function createScene(engine: Engine, canvas: HTMLCanvasElement): Scene {
+export function createScene(engine: Engine): Scene {
   // Create a BabylonJS scene
   const scene = new Scene(engine);
 
@@ -58,7 +48,7 @@ async function populateScene(scene: Scene) {
   // Create a directional light; this is the main light source and will cast shadows
   const shadowLight = new DirectionalLight(
     'shadowLight',
-    // This is the light direction, but also is inverted and used as the light's 
+    // This is the light direction, but also is inverted and used as the light's
     // position when computing the shadow clip frustum; two birds with one stone
     new Vector3(0, -20, 10),
     scene,
@@ -117,12 +107,7 @@ async function populateScene(scene: Scene) {
   wall.rotation.x = (25 / 180) * Math.PI;
   wall.receiveShadows = true;
 
-  const wallAggregate = new PhysicsAggregate(
-    wall,
-    PhysicsShapeType.BOX,
-    { mass: 0 },
-    scene,
-  );
+  new PhysicsAggregate(wall, PhysicsShapeType.BOX, { mass: 0 }, scene);
 
   const bars = [
     spawnBar(scene, wall, new Vector3(2, 3, -1.5), 10),
@@ -151,7 +136,7 @@ function spawnBar(scene: Scene, wall: Mesh, position: Vector3, angle: number) {
   bar.position = position;
   bar.rotation.z = (angle / 180) * Math.PI;
 
-  const aggregate = new PhysicsAggregate(
+  new PhysicsAggregate(
     bar,
     PhysicsShapeType.BOX,
     { mass: 0, friction: 0 },
@@ -170,7 +155,7 @@ function spawnMarble(scene: Scene, position: Vector3) {
   Color3.HSVtoRGBToRef(Math.random() * 360, 0.8, 0.9, myMaterial.diffuseColor);
   sphere.material = myMaterial;
 
-  const aggregate = new PhysicsAggregate(
+  new PhysicsAggregate(
     sphere,
     PhysicsShapeType.SPHERE,
     { mass: 1, restitution: 0.25 },

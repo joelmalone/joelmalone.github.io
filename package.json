@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "serve": "vite preview",
+    "preview": "vite preview",
     "deploy": "rm -rf docs && yarn build && cp -r dist docs"
   },
   "dependencies": {
@@ -21,6 +21,8 @@
   },
   "devDependencies": {
     "@types/cannon": "^0.1.7",
+    "@types/react": "^18.2.14",
+    "@types/react-dom": "^18.2.6",
     "typescript": "^5.1.6",
     "vite": "^4.3.9"
   }
