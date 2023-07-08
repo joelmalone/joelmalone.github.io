@@ -11,9 +11,20 @@ import {
   PhysicsAggregate,
   PhysicsShapeType,
   Mesh,
+  Node,
   Color3,
   StandardMaterial,
   ShadowGenerator,
+  SixDofDragBehavior,
+  PointerDragBehavior,
+  AbstractMesh,
+  PhysicsMotionType,
+  BallAndSocketConstraint,
+  PhysicsShape,
+  PickingInfo,
+  Quaternion,
+  ActionManager,
+  ExecuteCodeAction,
 } from '@babylonjs/core/Legacy/legacy';
 import HavokPhysics from '@babylonjs/havok';
 import '@babylonjs/loaders/glTF';
@@ -107,6 +118,18 @@ async function populateScene(scene: Scene) {
   wall.rotation.x = (25 / 180) * Math.PI;
   wall.receiveShadows = true;
 
+  const wallActionManager = (wall.actionManager = new ActionManager(scene));
+  wallActionManager.registerAction(
+    new ExecuteCodeAction(ActionManager.OnPickTrigger, (ev) => {
+      const pickingInfo = ev.additionalData as PickingInfo | null;
+      const point = pickingInfo?.pickedPoint;
+      const normal = pickingInfo?.getNormal(true);
+      if (point && normal) {
+        addStake(point, normal);
+      }
+    }),
+  );
+
   new PhysicsAggregate(wall, PhysicsShapeType.BOX, { mass: 0 }, scene);
 
   const bars = [
@@ -143,6 +166,8 @@ function spawnBar(scene: Scene, wall: Mesh, position: Vector3, angle: number) {
     scene,
   );
 
+  attachDraggableBehaviour(bar);
+
   return bar;
 }
 
@@ -163,4 +188,132 @@ function spawnMarble(scene: Scene, position: Vector3) {
   );
 
   return sphere;
+}
+
+function createDragHandle(scene: Scene) {
+  const mesh = MeshBuilder.CreateBox('drag handle', {}, scene);
+
+  var sixDofDragBehavior = new SixDofDragBehavior();
+  mesh.addBehavior(sixDofDragBehavior);
+
+  return {};
+}
+
+function attachDraggableBehaviour(mesh: AbstractMesh) {
+  // var behaviour = new SixDofDragBehavior();
+
+  const { physicsBody } = mesh;
+
+  if (!physicsBody) {
+    throw new Error('physicsBody is requiered.');
+  }
+
+  const fromSphere = MeshBuilder.CreateSphere(
+    'from sphere',
+    { diameter: 0.5 },
+    mesh.getScene(),
+  );
+  const toSphere = MeshBuilder.CreateSphere(
+    'to sphere',
+    { diameter: 0.5 },
+    mesh.getScene(),
+  );
+  fromSphere.isVisible = false;
+  toSphere.isVisible = false;
+
+  // https://doc.babylonjs.com/features/featuresDeepDive/behaviors/meshBehaviors#pointerdragbehavior
+  var behaviour = new PointerDragBehavior();
+  behaviour.useObjectOrientationForDragging = false;
+  behaviour.updateDragPlane = false;
+  behaviour.dragDeltaRatio = 1;
+  behaviour.moveAttached = false;
+
+  console.log('behaviour', behaviour);
+
+  // const startPoint = new Vector3();
+
+  // physicsBody.setMotionType(PhysicsMotionType.ANIMATED);
+  // physicsBody.setLinearVelocity(new Vector3(1, 0, 0));
+
+  const sphereAggregate = new PhysicsAggregate(
+    toSphere,
+    PhysicsShapeType.SPHERE,
+    { mass: 1, restitution: 0.75, radius: 0 },
+    mesh.getScene(),
+  );
+  sphereAggregate.body.setMotionType(PhysicsMotionType.ANIMATED);
+  sphereAggregate.body.disablePreStep = false;
+
+  let constraint: null | BallAndSocketConstraint = null;
+
+  const adjust = new Vector3();
+  const localPivot = new Vector3();
+
+  behaviour.onDragStartObservable.add((ev, state) => {
+    physicsBody.setMotionType(PhysicsMotionType.DYNAMIC);
+    physicsBody.setGravityFactor(0);
+    physicsBody.setMassProperties({ mass: 10 });
+    physicsBody.setLinearDamping(10000);
+    physicsBody.getAngularDamping(1000000);
+
+    const point = ev.pointerInfo!.pickInfo!.pickedPoint!;
+    adjust.copyFrom(point).subtractInPlace(ev.dragPlanePoint);
+
+    fromSphere.isVisible = true;
+    fromSphere.position.copyFrom(point);
+
+    toSphere.position.copyFrom(mesh.getAbsolutePosition());
+
+    // Vector3.TransformCoordinatesToRef(
+    //   point,
+    //   mesh.getWorldMatrix().invert(),
+    //   localPivot,
+    // );
+    localPivot.copyFrom(point).subtractInPlace(mesh.absolutePosition);
+
+    constraint = new BallAndSocketConstraint(
+      Vector3.Zero(),
+      Vector3.Zero(),
+      new Vector3(0, 1, 0),
+      new Vector3(0, 1, 0),
+      mesh.getScene(),
+    );
+    sphereAggregate.body.addConstraint(physicsBody, constraint);
+  });
+
+  behaviour.onDragObservable.add((ev, state) => {
+    const point = ev.dragPlanePoint.add(adjust);
+
+    toSphere.isVisible = true;
+    toSphere.position.copyFrom(point).subtractInPlace(localPivot);
+  });
+
+  behaviour.onDragEndObservable.add((ev, state) => {
+    physicsBody.setMotionType(PhysicsMotionType.STATIC);
+
+    fromSphere.isVisible = false;
+    toSphere.isVisible = false;
+
+    constraint?.dispose();
+  });
+
+  mesh.addBehavior(behaviour);
+
+  return function dispose() {
+    behaviour.detach();
+  };
+}
+
+function addStake(point: Vector3, normal: Vector3) {
+  const mesh = MeshBuilder.CreateCylinder('stake shaft', {
+    diameter: 0.25,
+    height: 1,
+  });
+  mesh.position.copyFrom(point);
+  mesh.lookAt(point.add(normal));
+  mesh.addRotation(Math.PI / 2, 0, 0);
+
+  new PhysicsAggregate(mesh, PhysicsShapeType.BOX).body.setMotionType(
+    PhysicsMotionType.STATIC,
+  );
 }
