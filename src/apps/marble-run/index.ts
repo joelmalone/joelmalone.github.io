@@ -34,6 +34,7 @@ import {
   SceneLoader,
   PhysicsMassProperties,
   Plane,
+  PointerEventTypes,
 } from '@babylonjs/core/Legacy/legacy';
 import HavokPhysics from '@babylonjs/havok';
 import '@babylonjs/loaders/glTF';
@@ -64,7 +65,7 @@ async function populateScene(scene: Scene) {
     new Vector3(0, 0, 0),
     scene,
   );
-  // camera.attachControl();
+  camera.attachControl();
 
   // Create a directional light; this is the main light source and will cast shadows
   const shadowLight = new DirectionalLight(
@@ -238,7 +239,6 @@ function attachDraggableBehaviour(mesh: AbstractMesh) {
 
   const dampingAndForceFactor = 500;
 
-  const adjust = new Vector3();
   const localPivot = new Vector3();
   let gravityFactor = 0;
   let linearDamping = 0;
@@ -257,10 +257,8 @@ function attachDraggableBehaviour(mesh: AbstractMesh) {
   }
 
   function onStart(position: Vector3) {
-    // const ray = ev.pointerInfo?.pickInfo?.ray?.direction!;
-    // options.dragPlaneNormal.set(-ray.x, 0, -ray.z);
-    // options.dragPlaneNormal.normalize();
-    // console.log('options.dragPlaneNormal set to', options.dragPlaneNormal);
+    // Prevent the camera from spinning around
+    scene.activeCamera?.detachControl();
 
     gravityFactor = physicsBody.getGravityFactor();
     linearDamping = physicsBody.getLinearDamping();
@@ -270,24 +268,22 @@ function attachDraggableBehaviour(mesh: AbstractMesh) {
     physicsBody.setLinearDamping(dampingAndForceFactor);
     physicsBody.setMassProperties({ mass: 1, inertia: new Vector3(0, 0, 0) });
 
-    // const point = ev.pointerInfo!.pickInfo!.pickedPoint!;
-    adjust.copyFrom(position); //.subtractInPlace(ev.dragPlanePoint);
-
-    fromSphere.isVisible = true;
+    // fromSphere.isVisible = true;
     fromSphere.position.copyFrom(position);
 
     toSphere.position.copyFrom(mesh.getAbsolutePosition());
 
-    localPivot.copyFrom(position).subtractInPlace(mesh.absolutePosition);
+    localPivot
+      .copyFrom(mesh.absolutePosition)
+      .subtractInPlace(position)
+      .addInPlace(new Vector3(0, 2, 0));
 
     scene.onBeforePhysicsObservable.add(onBeforePhysics);
   }
 
   function onDrag(position: Vector3) {
-    // const point = ev.dragPlanePoint.add(adjust);
-
-    toSphere.isVisible = true;
-    toSphere.position.copyFrom(position).subtractInPlace(localPivot);
+    // toSphere.isVisible = true;
+    toSphere.position.copyFrom(position).addInPlace(localPivot);
   }
 
   function onEnd() {
@@ -302,6 +298,9 @@ function attachDraggableBehaviour(mesh: AbstractMesh) {
 
     fromSphere.isVisible = false;
     toSphere.isVisible = false;
+
+    // Re-enable camera spinning
+    scene.activeCamera?.attachControl();
   }
 
   // mesh.addBehavior(behaviour);
@@ -350,69 +349,77 @@ export function createCustomDragBehaviour(
   let startPosition: null | Vector3 = null;
   let plane: null | Plane = null;
 
-  scene.onPointerDown = function (ev, pickingInfo) {
-    if (pickingInfo.pickedMesh !== mesh) {
-      return;
-    }
+  const observer = scene.onPointerObservable.add((pointerInfo) => {
+    const pickInfo = pointerInfo.pickInfo;
+    const pickedPoint = pickInfo!.pickedPoint;
 
-    if (pickingInfo.pickedPoint) {
-      if (startPosition) {
-        startXY = null;
-        startPosition = null;
-        plane = null;
-
-        onEnd();
-      }
-
-      startXY = new Vector2(ev.clientX, ev.clientY);
-      startPosition = pickingInfo.pickedPoint;
-      plane = null;
-
-      onStart(startPosition);
-    }
-  };
-
-  scene.onPointerMove = (ev, pickingInfo) => {
-    const ray = pickingInfo.ray;
-    if (ray && startPosition) {
-      if (!plane) {
-        // TODO: use smarts to define the plane after dragging for some distance:
-        // * If dragging screen-upwards, drag on the camera-facing plane
-        // * Otherwise, drag on the XZ plane
-
-        const dragXY = new Vector2(ev.clientX, ev.clientY).subtract(startXY!);
-        if (dragXY.length() < planeActivationLength) {
+    switch (pointerInfo.type) {
+      case PointerEventTypes.POINTERDOWN:
+        if (pickInfo!.pickedMesh !== mesh) {
           return;
         }
 
-        const isVerticalDrag = dragXY.normalize().y < -0.7;
+        if (pickedPoint) {
+          if (startPosition) {
+            startXY = null;
+            startPosition = null;
+            plane = null;
 
-        console.log(dragXY, isVerticalDrag);
+            onEnd();
+          }
 
-        const normal = isVerticalDrag
-          ? new Vector3(-ray.direction.x, 0, -ray.direction.z).normalize()
-          : Vector3.UpReadOnly;
-        plane = Plane.FromPositionAndNormal(startPosition, normal);
-      }
+          startXY = new Vector2(
+            pointerInfo.event.clientX,
+            pointerInfo.event.clientY,
+          );
+          startPosition = pickedPoint;
+          plane = null;
 
-      const t = ray.intersectsPlane(plane);
-      if (t !== null) {
-        const position = ray.origin.add(ray.direction.scale(t));
-        onDrag(position);
-      }
+          onStart(startPosition);
+        }
+        break;
+
+      case PointerEventTypes.POINTERMOVE:
+        const ray = pickInfo!.ray;
+        if (ray && startPosition) {
+          if (!plane) {
+            const dragXY = new Vector2(
+              pointerInfo.event.clientX,
+              pointerInfo.event.clientY,
+            ).subtract(startXY!);
+            if (dragXY.length() < planeActivationLength) {
+              return;
+            }
+
+            const isVerticalDrag = dragXY.normalize().y < -0.7;
+
+            const normal = isVerticalDrag
+              ? new Vector3(-ray.direction.x, 0, -ray.direction.z).normalize()
+              : Vector3.UpReadOnly;
+            plane = Plane.FromPositionAndNormal(startPosition, normal);
+          }
+
+          const t = ray.intersectsPlane(plane);
+          if (t !== null) {
+            const position = ray.origin.add(ray.direction.scale(t));
+            onDrag(position);
+          }
+        }
+        break;
+
+      case PointerEventTypes.POINTERUP:
+        if (startPosition) {
+          startXY = null;
+          startPosition = null;
+          plane = null;
+
+          onEnd();
+        }
+        break;
     }
-  };
-
-  scene.onPointerUp = () => {
-    if (startPosition) {
-      startPosition = null;
-      plane = null;
-
-      onEnd();
-    }
-  };
+  });
 
   return function dispose() {
-    // TODO: refactor above to use observables and um etc
+    scene.onPointerObservable.remove(observer);
   };
 }
