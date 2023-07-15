@@ -35,6 +35,8 @@ import {
   PhysicsMassProperties,
   Plane,
   PointerEventTypes,
+  AssetContainer,
+  Scalar,
 } from '@babylonjs/core/Legacy/legacy';
 import HavokPhysics from '@babylonjs/havok';
 import '@babylonjs/loaders/glTF';
@@ -115,46 +117,69 @@ async function populateScene(scene: Scene) {
   const ground = createGround(scene);
   ground.receiveShadows = true;
 
-  SceneLoader.ImportMeshAsync(null, MarbleRunPieceURL, '', scene).then(
-    ({ meshes }) => {
-      console.log('Loaded mesh.', meshes);
-
-      const [root, mesh] = meshes;
-
-      function isMesh(mesh: AbstractMesh): mesh is Mesh {
-        return mesh.constructor.name === 'Mesh';
-      }
-
-      if (!isMesh(mesh)) {
-        return;
-      }
-
-      root.name = 'marble-piece-root';
-      root.position = new Vector3(0, 2, 0);
-      // Based on the standard block size being 40x40x20
-      root.scaling.setAll(1 / 20);
-
-      shadowGenerator.addShadowCaster(root);
-
-      new PhysicsAggregate(
-        root,
-        PhysicsShapeType.MESH,
-        { mass: 1, mesh },
-        scene,
-      );
-
-      const myMaterial = new StandardMaterial('myMaterial', scene);
-      Color3.HSVtoRGBToRef(
-        Math.random() * 360,
-        0.8,
-        0.9,
-        myMaterial.diffuseColor,
-      );
-      mesh.material = myMaterial;
-
-      attachDraggableBehaviour(root);
-    },
+  // https://doc.babylonjs.com/features/featuresDeepDive/importers/loadingFileTypes#sceneloaderloadassetcontainer
+  const container = await SceneLoader.LoadAssetContainerAsync(
+    MarbleRunPieceURL,
+    '',
+    scene,
   );
+
+  console.log('Loaded mesh.', container.meshes[0]);
+
+  const [containerRoot, containerMesh] = container.meshes;
+
+  function isMesh(node: Node): node is Mesh {
+    return node.constructor.name === 'Mesh';
+  }
+
+  if (!isMesh(containerMesh)) {
+    return;
+  }
+
+  // Based on the standard block size being 40x40x20
+  containerRoot.scaling.setAll(1 / 20);
+
+  spawnBlock(new Vector3(0, 2, 0));
+
+  for (let i = 0; i < 10; i++) {
+    spawnBlock(
+      new Vector3(Scalar.RandomRange(-9, 9), 2, Scalar.RandomRange(-5, 5)),
+    );
+
+    await new Promise((r) => setTimeout(r, 250));
+  }
+
+  function spawnBlock(position: Vector3) {
+    const root = container.instantiateModelsToScene().rootNodes[0];
+    const mesh = root.getChildMeshes()[0];
+
+    if (!isMesh(root)) {
+      throw new Error('Cloned root is not a TransformNode.');
+    }
+    if (!isMesh(mesh)) {
+      throw new Error('Cloned mesh is not a Mesh.');
+    }
+
+    root.name = 'marble-piece-root';
+    root.position = position;
+
+    shadowGenerator.addShadowCaster(root, true);
+
+    new PhysicsAggregate(root, PhysicsShapeType.MESH, { mass: 1, mesh }, scene);
+
+    const myMaterial = new StandardMaterial('myMaterial', scene);
+    Color3.HSVtoRGBToRef(
+      Math.random() * 360,
+      0.8,
+      0.9,
+      myMaterial.diffuseColor,
+    );
+    mesh.material = myMaterial;
+
+    attachDraggableBehaviour(root);
+
+    return root;
+  }
 
   const marblesContainer = new TransformNode('marblesContainer');
   const interval = setInterval(() => {
@@ -211,13 +236,13 @@ function spawnMarble(scene: Scene, position: Vector3) {
   return sphere;
 }
 
-function attachDraggableBehaviour(mesh: AbstractMesh) {
-  const physicsBody = mesh.physicsBody!;
+function attachDraggableBehaviour(root: TransformNode) {
+  const physicsBody = root.physicsBody!;
   if (!physicsBody) {
     throw new Error('physicsBody is required.');
   }
 
-  const scene = mesh.getScene();
+  const scene = root.getScene();
 
   const physicsEngine = scene.getPhysicsEngine()!;
   if (!physicsEngine) {
@@ -245,7 +270,7 @@ function attachDraggableBehaviour(mesh: AbstractMesh) {
   let massProperties: null | PhysicsMassProperties = null;
 
   function onBeforePhysics() {
-    const worldCentreOfMass = mesh.absolutePosition.add(
+    const worldCentreOfMass = root.absolutePosition.add(
       physicsBody.getMassProperties().centerOfMass!,
     );
     const diff = toSphere.position.subtract(worldCentreOfMass);
@@ -271,10 +296,10 @@ function attachDraggableBehaviour(mesh: AbstractMesh) {
     // fromSphere.isVisible = true;
     fromSphere.position.copyFrom(position);
 
-    toSphere.position.copyFrom(mesh.getAbsolutePosition());
+    toSphere.position.copyFrom(root.getAbsolutePosition());
 
     localPivot
-      .copyFrom(mesh.absolutePosition)
+      .copyFrom(root.absolutePosition)
       .subtractInPlace(position)
       .addInPlace(new Vector3(0, 2, 0));
 
@@ -304,7 +329,7 @@ function attachDraggableBehaviour(mesh: AbstractMesh) {
   }
 
   // mesh.addBehavior(behaviour);
-  const dispose = createCustomDragBehaviour(mesh, onStart, onDrag, onEnd);
+  const dispose = createCustomDragBehaviour(root, onStart, onDrag, onEnd);
 
   return dispose;
 }
@@ -327,12 +352,12 @@ function killFallenMarbles(container: TransformNode) {
 }
 
 export function createCustomDragBehaviour(
-  mesh: AbstractMesh,
+  root: TransformNode,
   onStart: (position: Vector3) => void,
   onDrag: (position: Vector3) => void,
   onEnd: () => void,
 ) {
-  const scene = mesh.getScene();
+  const scene = root.getScene();
 
   // Get the smallest of the screen's width or height
   const screenSize = Math.min(
@@ -355,7 +380,7 @@ export function createCustomDragBehaviour(
 
     switch (pointerInfo.type) {
       case PointerEventTypes.POINTERDOWN:
-        if (!pickInfo!.pickedMesh?.isDescendantOf(mesh)) {
+        if (!pickInfo!.pickedMesh?.isDescendantOf(root)) {
           return;
         }
 
