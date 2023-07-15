@@ -137,7 +137,7 @@ async function populateScene(scene: Scene) {
       shadowGenerator.addShadowCaster(root);
 
       new PhysicsAggregate(
-        mesh,
+        root,
         PhysicsShapeType.MESH,
         { mass: 1, mesh },
         scene,
@@ -152,7 +152,7 @@ async function populateScene(scene: Scene) {
       );
       mesh.material = myMaterial;
 
-      attachDraggableBehaviour(mesh);
+      attachDraggableBehaviour(root);
     },
   );
 
@@ -355,7 +355,7 @@ export function createCustomDragBehaviour(
 
     switch (pointerInfo.type) {
       case PointerEventTypes.POINTERDOWN:
-        if (pickInfo!.pickedMesh !== mesh) {
+        if (!pickInfo!.pickedMesh?.isDescendantOf(mesh)) {
           return;
         }
 
