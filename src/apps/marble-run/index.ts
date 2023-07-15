@@ -1,11 +1,15 @@
 // http://localhost:5173/standalone.html?app=marble-run&hax
 
+// https://doc.babylonjs.com/features/featuresDeepDive/physics/constraints
+// https://doc.babylonjs.com/typedoc/classes/BABYLON.EasingFunction
+
 import {
   Engine,
   DirectionalLight,
   HemisphericLight,
   TransformNode,
   Scene,
+  Vector2,
   Vector3,
   MeshBuilder,
   ArcRotateCamera,
@@ -29,6 +33,7 @@ import {
   ExecuteCodeAction,
   SceneLoader,
   PhysicsMassProperties,
+  Plane,
 } from '@babylonjs/core/Legacy/legacy';
 import HavokPhysics from '@babylonjs/havok';
 import '@babylonjs/loaders/glTF';
@@ -59,7 +64,7 @@ async function populateScene(scene: Scene) {
     new Vector3(0, 0, 0),
     scene,
   );
-  camera.attachControl();
+  // camera.attachControl();
 
   // Create a directional light; this is the main light source and will cast shadows
   const shadowLight = new DirectionalLight(
@@ -231,13 +236,6 @@ function attachDraggableBehaviour(mesh: AbstractMesh) {
   fromSphere.isVisible = false;
   toSphere.isVisible = false;
 
-  // https://doc.babylonjs.com/features/featuresDeepDive/behaviors/meshBehaviors#pointerdragbehavior
-  var behaviour = new PointerDragBehavior();
-  // behaviour.useObjectOrientationForDragging = false;
-  // behaviour.updateDragPlane = false;
-  // behaviour.dragDeltaRatio = 1;
-  behaviour.moveAttached = false;
-
   const dampingAndForceFactor = 500;
 
   const adjust = new Vector3();
@@ -258,7 +256,12 @@ function attachDraggableBehaviour(mesh: AbstractMesh) {
     );
   }
 
-  behaviour.onDragStartObservable.add((ev, state) => {
+  function onStart(position: Vector3) {
+    // const ray = ev.pointerInfo?.pickInfo?.ray?.direction!;
+    // options.dragPlaneNormal.set(-ray.x, 0, -ray.z);
+    // options.dragPlaneNormal.normalize();
+    // console.log('options.dragPlaneNormal set to', options.dragPlaneNormal);
+
     gravityFactor = physicsBody.getGravityFactor();
     linearDamping = physicsBody.getLinearDamping();
     massProperties = physicsBody.getMassProperties();
@@ -267,27 +270,27 @@ function attachDraggableBehaviour(mesh: AbstractMesh) {
     physicsBody.setLinearDamping(dampingAndForceFactor);
     physicsBody.setMassProperties({ mass: 1, inertia: new Vector3(0, 0, 0) });
 
-    const point = ev.pointerInfo!.pickInfo!.pickedPoint!;
-    adjust.copyFrom(point).subtractInPlace(ev.dragPlanePoint);
+    // const point = ev.pointerInfo!.pickInfo!.pickedPoint!;
+    adjust.copyFrom(position); //.subtractInPlace(ev.dragPlanePoint);
 
     fromSphere.isVisible = true;
-    fromSphere.position.copyFrom(point);
+    fromSphere.position.copyFrom(position);
 
     toSphere.position.copyFrom(mesh.getAbsolutePosition());
 
-    localPivot.copyFrom(point).subtractInPlace(mesh.absolutePosition);
+    localPivot.copyFrom(position).subtractInPlace(mesh.absolutePosition);
 
     scene.onBeforePhysicsObservable.add(onBeforePhysics);
-  });
+  }
 
-  behaviour.onDragObservable.add((ev, state) => {
-    const point = ev.dragPlanePoint.add(adjust);
+  function onDrag(position: Vector3) {
+    // const point = ev.dragPlanePoint.add(adjust);
 
     toSphere.isVisible = true;
-    toSphere.position.copyFrom(point).subtractInPlace(localPivot);
-  });
+    toSphere.position.copyFrom(position).subtractInPlace(localPivot);
+  }
 
-  behaviour.onDragEndObservable.add((ev, state) => {
+  function onEnd() {
     scene.onBeforePhysicsObservable.removeCallback(onBeforePhysics);
 
     const linearVelocity = new Vector3();
@@ -299,13 +302,12 @@ function attachDraggableBehaviour(mesh: AbstractMesh) {
 
     fromSphere.isVisible = false;
     toSphere.isVisible = false;
-  });
+  }
 
-  mesh.addBehavior(behaviour);
+  // mesh.addBehavior(behaviour);
+  const dispose = createCustomDragBehaviour(mesh, onStart, onDrag, onEnd);
 
-  return function dispose() {
-    behaviour.detach();
-  };
+  return dispose;
 }
 
 function killFallenMarbles(container: TransformNode) {
@@ -319,6 +321,98 @@ function killFallenMarbles(container: TransformNode) {
       fallenMarbles,
     );
 
-    fallenMarbles.forEach(({ dispose }) => dispose());
+    // TODO: this is disabled for now because it throws. We need to also
+    // pool the materials anyway, if we're being clean
+    // fallenMarbles.forEach(({ dispose }) => dispose());
   }
+}
+
+export function createCustomDragBehaviour(
+  mesh: AbstractMesh,
+  onStart: (position: Vector3) => void,
+  onDrag: (position: Vector3) => void,
+  onEnd: () => void,
+) {
+  const scene = mesh.getScene();
+
+  // Get the smallest of the screen's width or height
+  const screenSize = Math.min(
+    scene.getEngine().getRenderWidth(),
+    scene.getEngine().getRenderHeight(),
+  );
+
+  // From the screen size, define a box that is 10% of the size
+  // of the screen - this is effectively the max drag range of
+  // the mouse drag, from the start point, in all 4 directions
+  const planeActivationLength = 0.1 * screenSize;
+
+  let startXY: null | Vector2 = null;
+  let startPosition: null | Vector3 = null;
+  let plane: null | Plane = null;
+
+  scene.onPointerDown = function (ev, pickingInfo) {
+    if (pickingInfo.pickedMesh !== mesh) {
+      return;
+    }
+
+    if (pickingInfo.pickedPoint) {
+      if (startPosition) {
+        startXY = null;
+        startPosition = null;
+        plane = null;
+
+        onEnd();
+      }
+
+      startXY = new Vector2(ev.clientX, ev.clientY);
+      startPosition = pickingInfo.pickedPoint;
+      plane = null;
+
+      onStart(startPosition);
+    }
+  };
+
+  scene.onPointerMove = (ev, pickingInfo) => {
+    const ray = pickingInfo.ray;
+    if (ray && startPosition) {
+      if (!plane) {
+        // TODO: use smarts to define the plane after dragging for some distance:
+        // * If dragging screen-upwards, drag on the camera-facing plane
+        // * Otherwise, drag on the XZ plane
+
+        const dragXY = new Vector2(ev.clientX, ev.clientY).subtract(startXY!);
+        if (dragXY.length() < planeActivationLength) {
+          return;
+        }
+
+        const isVerticalDrag = dragXY.normalize().y < -0.7;
+
+        console.log(dragXY, isVerticalDrag);
+
+        const normal = isVerticalDrag
+          ? new Vector3(-ray.direction.x, 0, -ray.direction.z).normalize()
+          : Vector3.UpReadOnly;
+        plane = Plane.FromPositionAndNormal(startPosition, normal);
+      }
+
+      const t = ray.intersectsPlane(plane);
+      if (t !== null) {
+        const position = ray.origin.add(ray.direction.scale(t));
+        onDrag(position);
+      }
+    }
+  };
+
+  scene.onPointerUp = () => {
+    if (startPosition) {
+      startPosition = null;
+      plane = null;
+
+      onEnd();
+    }
+  };
+
+  return function dispose() {
+    // TODO: refactor above to use observables and um etc
+  };
 }
