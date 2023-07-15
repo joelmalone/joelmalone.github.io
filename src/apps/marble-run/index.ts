@@ -1,3 +1,5 @@
+// http://localhost:5173/standalone.html?app=marble-run&hax
+
 import {
   Engine,
   DirectionalLight,
@@ -25,11 +27,14 @@ import {
   Quaternion,
   ActionManager,
   ExecuteCodeAction,
+  SceneLoader,
+  PhysicsMassProperties,
 } from '@babylonjs/core/Legacy/legacy';
 import HavokPhysics from '@babylonjs/havok';
 import '@babylonjs/loaders/glTF';
 
 import WasmURL from '/node_modules/@babylonjs/havok/lib/esm/HavokPhysics.wasm?url';
+import MarbleRunPieceURL from './marble-run-piece.glb?url';
 
 export function createScene(engine: Engine): Scene {
   // Create a BabylonJS scene
@@ -48,8 +53,8 @@ async function populateScene(scene: Scene) {
 
   const camera = new ArcRotateCamera(
     'camera',
-    (-110 / 180) * Math.PI,
-    (90 / 180) * Math.PI,
+    (150 / 180) * Math.PI,
+    (45 / 180) * Math.PI,
     23,
     new Vector3(0, 0, 0),
     scene,
@@ -101,74 +106,84 @@ async function populateScene(scene: Scene) {
   const havokPlugin = new HavokPlugin(true, havokInstance);
   scene.enablePhysics(new Vector3(0, -9.8, 0), havokPlugin);
 
-  const color3 = new Color3(0.1, 0.2, 0.3);
-  Color3.HSVtoRGBToRef(30 + 180, 0.8, 1, color3);
-  const color4 = color3.toColor4();
-  const wall = MeshBuilder.CreateBox(
-    'wall',
-    {
-      width: 10,
-      height: 18,
-      depth: 1,
-      faceColors: [color4, color4, color4, color4, color4, color4],
-    },
-    scene,
-  );
-  // Slight tilt
-  wall.rotation.x = (25 / 180) * Math.PI;
-  wall.receiveShadows = true;
+  const ground = createGround(scene);
+  ground.receiveShadows = true;
 
-  const wallActionManager = (wall.actionManager = new ActionManager(scene));
-  wallActionManager.registerAction(
-    new ExecuteCodeAction(ActionManager.OnPickTrigger, (ev) => {
-      const pickingInfo = ev.additionalData as PickingInfo | null;
-      const point = pickingInfo?.pickedPoint;
-      const normal = pickingInfo?.getNormal(true);
-      if (point && normal) {
-        addStake(point, normal);
+  SceneLoader.ImportMeshAsync(null, MarbleRunPieceURL, '', scene).then(
+    ({ meshes }) => {
+      console.log('Loaded mesh.', meshes);
+
+      const [root, mesh] = meshes;
+
+      function isMesh(mesh: AbstractMesh): mesh is Mesh {
+        return mesh.constructor.name === 'Mesh';
       }
-    }),
+
+      if (!isMesh(mesh)) {
+        return;
+      }
+
+      root.name = 'marble-piece-root';
+      root.position = new Vector3(0, 2, 0);
+      // Based on the standard block size being 40x40x20
+      root.scaling.setAll(1 / 20);
+
+      shadowGenerator.addShadowCaster(root);
+
+      new PhysicsAggregate(
+        mesh,
+        PhysicsShapeType.MESH,
+        { mass: 1, mesh },
+        scene,
+      );
+
+      const myMaterial = new StandardMaterial('myMaterial', scene);
+      Color3.HSVtoRGBToRef(
+        Math.random() * 360,
+        0.8,
+        0.9,
+        myMaterial.diffuseColor,
+      );
+      mesh.material = myMaterial;
+
+      attachDraggableBehaviour(mesh);
+    },
   );
-
-  new PhysicsAggregate(wall, PhysicsShapeType.BOX, { mass: 0 }, scene);
-
-  const bars = [
-    spawnBar(scene, wall, new Vector3(2, 3, -1.5), 10),
-    spawnBar(scene, wall, new Vector3(-2, 0, -1.5), -10),
-  ];
-  for (const bar of bars) {
-    shadowGenerator.addShadowCaster(bar);
-  }
 
   const marblesContainer = new TransformNode('marblesContainer');
   const interval = setInterval(() => {
-    const marble = spawnMarble(scene, new Vector3(0, 9, 2));
+    const marble = spawnMarble(
+      scene,
+      new Vector3(Math.random() * 0.2 - 0.1, 10, Math.random() * 0.2 - 0.1),
+    );
     marble.parent = marblesContainer;
     shadowGenerator.addShadowCaster(marble);
+
+    killFallenMarbles(marblesContainer);
   }, 1000);
   scene.onDisposeObservable.addOnce(() => clearInterval(interval));
 }
 
-function spawnBar(scene: Scene, wall: Mesh, position: Vector3, angle: number) {
-  const bar = MeshBuilder.CreateBox(
-    'bar',
-    { width: 8, height: 0.25, depth: 0.25 },
+function createGround(scene: Scene) {
+  const mesh = MeshBuilder.CreateBox(
+    'ground',
+    {
+      width: 20,
+      depth: 20,
+      height: 0.5,
+    },
     scene,
   );
-  bar.parent = wall;
-  bar.position = position;
-  bar.rotation.z = (angle / 180) * Math.PI;
+  mesh.position = new Vector3(0, -0.25, 0);
 
   new PhysicsAggregate(
-    bar,
+    mesh,
     PhysicsShapeType.BOX,
-    { mass: 0, friction: 0 },
+    { mass: 0, restitution: 0.1 },
     scene,
   );
 
-  attachDraggableBehaviour(bar);
-
-  return bar;
+  return mesh;
 }
 
 function spawnMarble(scene: Scene, position: Vector3) {
@@ -190,71 +205,67 @@ function spawnMarble(scene: Scene, position: Vector3) {
   return sphere;
 }
 
-function createDragHandle(scene: Scene) {
-  const mesh = MeshBuilder.CreateBox('drag handle', {}, scene);
-
-  var sixDofDragBehavior = new SixDofDragBehavior();
-  mesh.addBehavior(sixDofDragBehavior);
-
-  return {};
-}
-
 function attachDraggableBehaviour(mesh: AbstractMesh) {
-  // var behaviour = new SixDofDragBehavior();
-
-  const { physicsBody } = mesh;
-
+  const physicsBody = mesh.physicsBody!;
   if (!physicsBody) {
-    throw new Error('physicsBody is requiered.');
+    throw new Error('physicsBody is required.');
+  }
+
+  const scene = mesh.getScene();
+
+  const physicsEngine = scene.getPhysicsEngine()!;
+  if (!physicsEngine) {
+    throw new Error('physicsEngine is required.');
   }
 
   const fromSphere = MeshBuilder.CreateSphere(
     'from sphere',
     { diameter: 0.5 },
-    mesh.getScene(),
+    scene,
   );
   const toSphere = MeshBuilder.CreateSphere(
     'to sphere',
     { diameter: 0.5 },
-    mesh.getScene(),
+    scene,
   );
   fromSphere.isVisible = false;
   toSphere.isVisible = false;
 
   // https://doc.babylonjs.com/features/featuresDeepDive/behaviors/meshBehaviors#pointerdragbehavior
   var behaviour = new PointerDragBehavior();
-  behaviour.useObjectOrientationForDragging = false;
-  behaviour.updateDragPlane = false;
-  behaviour.dragDeltaRatio = 1;
+  // behaviour.useObjectOrientationForDragging = false;
+  // behaviour.updateDragPlane = false;
+  // behaviour.dragDeltaRatio = 1;
   behaviour.moveAttached = false;
 
-  console.log('behaviour', behaviour);
-
-  // const startPoint = new Vector3();
-
-  // physicsBody.setMotionType(PhysicsMotionType.ANIMATED);
-  // physicsBody.setLinearVelocity(new Vector3(1, 0, 0));
-
-  const sphereAggregate = new PhysicsAggregate(
-    toSphere,
-    PhysicsShapeType.SPHERE,
-    { mass: 1, restitution: 0.75, radius: 0 },
-    mesh.getScene(),
-  );
-  sphereAggregate.body.setMotionType(PhysicsMotionType.ANIMATED);
-  sphereAggregate.body.disablePreStep = false;
-
-  let constraint: null | BallAndSocketConstraint = null;
+  const dampingAndForceFactor = 500;
 
   const adjust = new Vector3();
   const localPivot = new Vector3();
+  let gravityFactor = 0;
+  let linearDamping = 0;
+  let massProperties: null | PhysicsMassProperties = null;
+
+  function onBeforePhysics() {
+    const worldCentreOfMass = mesh.absolutePosition.add(
+      physicsBody.getMassProperties().centerOfMass!,
+    );
+    const diff = toSphere.position.subtract(worldCentreOfMass);
+
+    physicsBody.applyForce(
+      diff.scale(dampingAndForceFactor),
+      worldCentreOfMass,
+    );
+  }
 
   behaviour.onDragStartObservable.add((ev, state) => {
-    physicsBody.setMotionType(PhysicsMotionType.DYNAMIC);
+    gravityFactor = physicsBody.getGravityFactor();
+    linearDamping = physicsBody.getLinearDamping();
+    massProperties = physicsBody.getMassProperties();
+
     physicsBody.setGravityFactor(0);
-    physicsBody.setMassProperties({ mass: 10 });
-    physicsBody.setLinearDamping(10000);
-    physicsBody.getAngularDamping(1000000);
+    physicsBody.setLinearDamping(dampingAndForceFactor);
+    physicsBody.setMassProperties({ mass: 1, inertia: new Vector3(0, 0, 0) });
 
     const point = ev.pointerInfo!.pickInfo!.pickedPoint!;
     adjust.copyFrom(point).subtractInPlace(ev.dragPlanePoint);
@@ -264,21 +275,9 @@ function attachDraggableBehaviour(mesh: AbstractMesh) {
 
     toSphere.position.copyFrom(mesh.getAbsolutePosition());
 
-    // Vector3.TransformCoordinatesToRef(
-    //   point,
-    //   mesh.getWorldMatrix().invert(),
-    //   localPivot,
-    // );
     localPivot.copyFrom(point).subtractInPlace(mesh.absolutePosition);
 
-    constraint = new BallAndSocketConstraint(
-      Vector3.Zero(),
-      Vector3.Zero(),
-      new Vector3(0, 1, 0),
-      new Vector3(0, 1, 0),
-      mesh.getScene(),
-    );
-    sphereAggregate.body.addConstraint(physicsBody, constraint);
+    scene.onBeforePhysicsObservable.add(onBeforePhysics);
   });
 
   behaviour.onDragObservable.add((ev, state) => {
@@ -289,12 +288,17 @@ function attachDraggableBehaviour(mesh: AbstractMesh) {
   });
 
   behaviour.onDragEndObservable.add((ev, state) => {
-    physicsBody.setMotionType(PhysicsMotionType.STATIC);
+    scene.onBeforePhysicsObservable.removeCallback(onBeforePhysics);
+
+    const linearVelocity = new Vector3();
+    physicsBody.getLinearVelocityToRef(linearVelocity);
+
+    physicsBody.setGravityFactor(gravityFactor);
+    physicsBody.setLinearDamping(linearDamping);
+    physicsBody.setMassProperties(massProperties!);
 
     fromSphere.isVisible = false;
     toSphere.isVisible = false;
-
-    constraint?.dispose();
   });
 
   mesh.addBehavior(behaviour);
@@ -304,16 +308,17 @@ function attachDraggableBehaviour(mesh: AbstractMesh) {
   };
 }
 
-function addStake(point: Vector3, normal: Vector3) {
-  const mesh = MeshBuilder.CreateCylinder('stake shaft', {
-    diameter: 0.25,
-    height: 1,
-  });
-  mesh.position.copyFrom(point);
-  mesh.lookAt(point.add(normal));
-  mesh.addRotation(Math.PI / 2, 0, 0);
-
-  new PhysicsAggregate(mesh, PhysicsShapeType.BOX).body.setMotionType(
-    PhysicsMotionType.STATIC,
+function killFallenMarbles(container: TransformNode) {
+  const fallenMarbles = container.getChildren(
+    (n: any) => n.absolutePosition!.y < -100,
   );
+
+  if (fallenMarbles.length) {
+    console.debug(
+      `Killing ${fallenMarbles.length} fallen marbles.`,
+      fallenMarbles,
+    );
+
+    fallenMarbles.forEach(({ dispose }) => dispose());
+  }
 }
