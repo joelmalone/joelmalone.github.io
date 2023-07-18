@@ -37,6 +37,10 @@ import {
   PointerEventTypes,
   AssetContainer,
   Scalar,
+  Material,
+  Animation,
+  AnimationEvent,
+  PhysicsBody,
 } from '@babylonjs/core/Legacy/legacy';
 import HavokPhysics from '@babylonjs/havok';
 import '@babylonjs/loaders/glTF';
@@ -54,10 +58,9 @@ export function createScene(engine: Engine): Scene {
 }
 
 async function populateScene(scene: Scene) {
-  // And also, let's set the scene's "clear colour" to black
-  const sceneColor3 = new Color3();
-  Color3.HSVtoRGBToRef(30, 0.8, 1, sceneColor3);
-  scene.clearColor = sceneColor3.toColor4();
+  const materialsPool = createMaterialsPool(scene);
+
+  scene.clearColor = Color3.FromHSV(30, 0.8, 1).toColor4();
 
   const camera = new ArcRotateCamera(
     'camera',
@@ -117,6 +120,8 @@ async function populateScene(scene: Scene) {
   const ground = createGround(scene);
   ground.receiveShadows = true;
 
+  startDraggableBehaviour(scene);
+
   // https://doc.babylonjs.com/features/featuresDeepDive/importers/loadingFileTypes#sceneloaderloadassetcontainer
   const container = await SceneLoader.LoadAssetContainerAsync(
     MarbleRunPieceURL,
@@ -126,7 +131,7 @@ async function populateScene(scene: Scene) {
 
   console.log('Loaded mesh.', container.meshes[0]);
 
-  const [containerRoot, containerMesh] = container.meshes;
+  const [containerMesh] = container.meshes;
 
   function isMesh(node: Node): node is Mesh {
     return node.constructor.name === 'Mesh';
@@ -137,13 +142,19 @@ async function populateScene(scene: Scene) {
   }
 
   // Based on the standard block size being 40x40x20
-  containerRoot.scaling.setAll(1 / 20);
+  containerMesh.scaling.setAll(1 / 20);
+  containerMesh.bakeCurrentTransformIntoVertices();
+  containerMesh.refreshBoundingInfo();
 
   spawnBlock(new Vector3(0, 2, 0));
 
   for (let i = 0; i < 10; i++) {
     spawnBlock(
-      new Vector3(Scalar.RandomRange(-9, 9), 2, Scalar.RandomRange(-5, 5)),
+      new Vector3(
+        Scalar.RandomRange(-5, 5),
+        2 + i * 3,
+        Scalar.RandomRange(-5, 5),
+      ),
     );
 
     await new Promise((r) => setTimeout(r, 250));
@@ -161,22 +172,15 @@ async function populateScene(scene: Scene) {
     }
 
     root.name = 'marble-piece-root';
-    root.position = position;
+
+    mesh.material = materialsPool.fromHue(Math.random());
+    mesh.position = position;
 
     shadowGenerator.addShadowCaster(root, true);
 
-    new PhysicsAggregate(root, PhysicsShapeType.MESH, { mass: 1, mesh }, scene);
+    new PhysicsAggregate(mesh, PhysicsShapeType.MESH, { mass: 1, mesh }, scene);
 
-    const myMaterial = new StandardMaterial('myMaterial', scene);
-    Color3.HSVtoRGBToRef(
-      Math.random() * 360,
-      0.8,
-      0.9,
-      myMaterial.diffuseColor,
-    );
-    mesh.material = myMaterial;
-
-    attachDraggableBehaviour(root);
+    mesh.metadata = { draggable: true };
 
     return root;
   }
@@ -186,6 +190,7 @@ async function populateScene(scene: Scene) {
     const marble = spawnMarble(
       scene,
       new Vector3(Math.random() * 0.2 - 0.1, 10, Math.random() * 0.2 - 0.1),
+      materialsPool.fromHue(Math.random()),
     );
     marble.parent = marblesContainer;
     shadowGenerator.addShadowCaster(marble);
@@ -217,14 +222,10 @@ function createGround(scene: Scene) {
   return mesh;
 }
 
-function spawnMarble(scene: Scene, position: Vector3) {
+function spawnMarble(scene: Scene, position: Vector3, material: Material) {
   const sphere = MeshBuilder.CreateSphere('marble', { diameter: 1 }, scene);
   sphere.position = position;
-
-  // https://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
-  const myMaterial = new StandardMaterial('myMaterial', scene);
-  Color3.HSVtoRGBToRef(Math.random() * 360, 0.8, 0.9, myMaterial.diffuseColor);
-  sphere.material = myMaterial;
+  sphere.material = material;
 
   new PhysicsAggregate(
     sphere,
@@ -233,22 +234,12 @@ function spawnMarble(scene: Scene, position: Vector3) {
     scene,
   );
 
+  sphere.metadata = { draggable: true };
+
   return sphere;
 }
 
-function attachDraggableBehaviour(root: TransformNode) {
-  const physicsBody = root.physicsBody!;
-  if (!physicsBody) {
-    throw new Error('physicsBody is required.');
-  }
-
-  const scene = root.getScene();
-
-  const physicsEngine = scene.getPhysicsEngine()!;
-  if (!physicsEngine) {
-    throw new Error('physicsEngine is required.');
-  }
-
+function startDraggableBehaviour(scene: Scene) {
   const fromSphere = MeshBuilder.CreateSphere(
     'from sphere',
     { diameter: 0.5 },
@@ -264,30 +255,21 @@ function attachDraggableBehaviour(root: TransformNode) {
 
   const dampingAndForceFactor = 500;
 
-  const localPivot = new Vector3();
-  let gravityFactor = 0;
-  let linearDamping = 0;
-  let massProperties: null | PhysicsMassProperties = null;
+  function onStart(mesh: AbstractMesh, position: Vector3) {
+    const physicsBody = mesh.metadata?.draggable ? mesh.physicsBody! : null;
+    if (!physicsBody) {
+      return null;
+    }
 
-  function onBeforePhysics() {
-    const worldCentreOfMass = root.absolutePosition.add(
-      physicsBody.getMassProperties().centerOfMass!,
-    );
-    const diff = toSphere.position.subtract(worldCentreOfMass);
-
-    physicsBody.applyForce(
-      diff.scale(dampingAndForceFactor),
-      worldCentreOfMass,
-    );
-  }
-
-  function onStart(position: Vector3) {
     // Prevent the camera from spinning around
     scene.activeCamera?.detachControl();
 
-    gravityFactor = physicsBody.getGravityFactor();
-    linearDamping = physicsBody.getLinearDamping();
-    massProperties = physicsBody.getMassProperties();
+    const gravityFactor = physicsBody.getGravityFactor();
+    const linearDamping = physicsBody.getLinearDamping();
+    const massProperties = physicsBody.getMassProperties();
+    const localPivot = mesh.absolutePosition
+      .subtract(position)
+      .addInPlace(new Vector3(0, 2, 0));
 
     physicsBody.setGravityFactor(0);
     physicsBody.setLinearDamping(dampingAndForceFactor);
@@ -295,48 +277,51 @@ function attachDraggableBehaviour(root: TransformNode) {
 
     // fromSphere.isVisible = true;
     fromSphere.position.copyFrom(position);
+    toSphere.position.copyFrom(mesh.getAbsolutePosition());
 
-    toSphere.position.copyFrom(root.getAbsolutePosition());
+    const observer = scene.onBeforePhysicsObservable.add(
+      function onBeforePhysics() {
+        const worldCentreOfMass =
+          physicsBody.transformNode.absolutePosition.add(
+            physicsBody.getMassProperties().centerOfMass!,
+          );
+        const diff = toSphere.position.subtract(worldCentreOfMass);
 
-    localPivot
-      .copyFrom(root.absolutePosition)
-      .subtractInPlace(position)
-      .addInPlace(new Vector3(0, 2, 0));
+        physicsBody.applyForce(
+          diff.scale(dampingAndForceFactor),
+          worldCentreOfMass,
+        );
+      },
+    );
 
-    scene.onBeforePhysicsObservable.add(onBeforePhysics);
+    function onDrag(position: Vector3) {
+      // toSphere.isVisible = true;
+      toSphere.position.copyFrom(position).addInPlace(localPivot);
+    }
+
+    function onEnd() {
+      scene.onBeforePhysicsObservable.remove(observer);
+
+      physicsBody.setGravityFactor(gravityFactor);
+      physicsBody.setLinearDamping(linearDamping);
+      physicsBody.setMassProperties(massProperties!);
+
+      fromSphere.isVisible = false;
+      toSphere.isVisible = false;
+
+      // Re-enable camera spinning
+      scene.activeCamera?.attachControl();
+    }
+
+    return { onDrag, onEnd };
   }
 
-  function onDrag(position: Vector3) {
-    // toSphere.isVisible = true;
-    toSphere.position.copyFrom(position).addInPlace(localPivot);
-  }
-
-  function onEnd() {
-    scene.onBeforePhysicsObservable.removeCallback(onBeforePhysics);
-
-    const linearVelocity = new Vector3();
-    physicsBody.getLinearVelocityToRef(linearVelocity);
-
-    physicsBody.setGravityFactor(gravityFactor);
-    physicsBody.setLinearDamping(linearDamping);
-    physicsBody.setMassProperties(massProperties!);
-
-    fromSphere.isVisible = false;
-    toSphere.isVisible = false;
-
-    // Re-enable camera spinning
-    scene.activeCamera?.attachControl();
-  }
-
-  // mesh.addBehavior(behaviour);
-  const dispose = createCustomDragBehaviour(root, onStart, onDrag, onEnd);
-
-  return dispose;
+  return startCustomDragBehaviour(scene, onStart);
 }
 
 function killFallenMarbles(container: TransformNode) {
   const fallenMarbles = container.getChildren(
-    (n: any) => n.absolutePosition!.y < -100,
+    (n: any) => n.absolutePosition!.y < 0,
   );
 
   if (fallenMarbles.length) {
@@ -345,20 +330,31 @@ function killFallenMarbles(container: TransformNode) {
       fallenMarbles,
     );
 
-    // TODO: this is disabled for now because it throws. We need to also
-    // pool the materials anyway, if we're being clean
-    // fallenMarbles.forEach(({ dispose }) => dispose());
+    fallenMarbles.forEach((marble) => {
+      marble.parent = null;
+      Animation.CreateAndStartAnimation(
+        'fade out',
+        marble,
+        'visibility',
+        1,
+        1,
+        1,
+        0,
+        0,
+        undefined,
+        () => marble.dispose(),
+      );
+    });
   }
 }
 
-export function createCustomDragBehaviour(
-  root: TransformNode,
-  onStart: (position: Vector3) => void,
-  onDrag: (position: Vector3) => void,
-  onEnd: () => void,
+export function startCustomDragBehaviour(
+  scene: Scene,
+  onStart: (
+    mesh: AbstractMesh,
+    position: Vector3,
+  ) => null | { onDrag: (position: Vector3) => void; onEnd: () => void },
 ) {
-  const scene = root.getScene();
-
   // Get the smallest of the screen's width or height
   const screenSize = Math.min(
     scene.getEngine().getRenderWidth(),
@@ -370,48 +366,60 @@ export function createCustomDragBehaviour(
   // the mouse drag, from the start point, in all 4 directions
   const planeActivationLength = 0.1 * screenSize;
 
-  let startXY: null | Vector2 = null;
-  let startPosition: null | Vector3 = null;
+  let currentDrag: {
+    startXY: Vector2;
+    startPosition: Vector3;
+    mesh: AbstractMesh;
+    onDrag: (position: Vector3) => void;
+    onEnd: () => void;
+  } | null = null;
   let plane: null | Plane = null;
 
   const observer = scene.onPointerObservable.add((pointerInfo) => {
     const pickInfo = pointerInfo.pickInfo;
     const pickedPoint = pickInfo!.pickedPoint;
+    const pickedMesh = pickInfo!.pickedMesh;
 
     switch (pointerInfo.type) {
       case PointerEventTypes.POINTERDOWN:
-        if (!pickInfo!.pickedMesh?.isDescendantOf(root)) {
-          return;
-        }
+        if (pickedPoint && pickedMesh) {
+          if (currentDrag) {
+            currentDrag.onEnd();
 
-        if (pickedPoint) {
-          if (startPosition) {
-            startXY = null;
-            startPosition = null;
+            currentDrag = null;
             plane = null;
-
-            onEnd();
           }
 
-          startXY = new Vector2(
-            pointerInfo.event.clientX,
-            pointerInfo.event.clientY,
-          );
-          startPosition = pickedPoint;
-          plane = null;
+          const state = onStart(pickedMesh, pickedPoint);
+          if (!state) {
+            return;
+          }
 
-          onStart(startPosition);
+          currentDrag = {
+            startXY: new Vector2(
+              pointerInfo.event.clientX,
+              pointerInfo.event.clientY,
+            ),
+            startPosition: pickedPoint,
+            mesh: pickedMesh,
+            ...state,
+          };
+          plane = null;
         }
         break;
 
       case PointerEventTypes.POINTERMOVE:
+        if (!currentDrag) {
+          return;
+        }
+
         const ray = pickInfo!.ray;
-        if (ray && startPosition) {
+        if (ray) {
           if (!plane) {
             const dragXY = new Vector2(
               pointerInfo.event.clientX,
               pointerInfo.event.clientY,
-            ).subtract(startXY!);
+            ).subtract(currentDrag.startXY!);
             if (dragXY.length() < planeActivationLength) {
               return;
             }
@@ -421,24 +429,26 @@ export function createCustomDragBehaviour(
             const normal = isVerticalDrag
               ? new Vector3(-ray.direction.x, 0, -ray.direction.z).normalize()
               : Vector3.UpReadOnly;
-            plane = Plane.FromPositionAndNormal(startPosition, normal);
+            plane = Plane.FromPositionAndNormal(
+              currentDrag.startPosition,
+              normal,
+            );
           }
 
           const t = ray.intersectsPlane(plane);
           if (t !== null) {
             const position = ray.origin.add(ray.direction.scale(t));
-            onDrag(position);
+            currentDrag.onDrag(position);
           }
         }
         break;
 
       case PointerEventTypes.POINTERUP:
-        if (startPosition) {
-          startXY = null;
-          startPosition = null;
-          plane = null;
+        if (currentDrag) {
+          currentDrag.onEnd();
 
-          onEnd();
+          currentDrag = null;
+          plane = null;
         }
         break;
     }
@@ -447,4 +457,28 @@ export function createCustomDragBehaviour(
   return function dispose() {
     scene.onPointerObservable.remove(observer);
   };
+}
+
+function createMaterialsPool(scene: Scene) {
+  const materialsByColor = new Map<string, StandardMaterial>();
+
+  /**
+   * Returns a material with the requested hue. The method will reduce the fidelity of the given hue to allow for reuse.
+   * @param hue01 the hue, in range `[0, 1)`.
+   * @returns A material with the requested hue.
+   */
+  function fromHue(hue01: number) {
+    // https://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
+    const color = Color3.FromHSV(Math.trunc(hue01 * 36) * 10, 0.8, 0.9);
+    const key = color.toHexString();
+    let material = materialsByColor.get(key);
+    if (!material) {
+      material = new StandardMaterial(`createMaterialsPool ${key}`, scene);
+      material.diffuseColor = color;
+      materialsByColor.set(key, material);
+    }
+    return material;
+  }
+
+  return { fromHue };
 }
