@@ -21,26 +21,13 @@ import {
   Color3,
   StandardMaterial,
   ShadowGenerator,
-  SixDofDragBehavior,
-  PointerDragBehavior,
   AbstractMesh,
-  PhysicsMotionType,
-  BallAndSocketConstraint,
-  PhysicsShape,
-  PickingInfo,
-  Quaternion,
-  ActionManager,
-  ExecuteCodeAction,
   SceneLoader,
-  PhysicsMassProperties,
   Plane,
   PointerEventTypes,
-  AssetContainer,
   Scalar,
   Material,
   Animation,
-  AnimationEvent,
-  PhysicsBody,
 } from '@babylonjs/core/Legacy/legacy';
 import HavokPhysics from '@babylonjs/havok';
 import '@babylonjs/loaders/glTF';
@@ -256,10 +243,11 @@ function startDraggableBehaviour(scene: Scene) {
   const dampingAndForceFactor = 500;
 
   function onStart(mesh: AbstractMesh, position: Vector3) {
-    const physicsBody = mesh.metadata?.draggable ? mesh.physicsBody! : null;
-    if (!physicsBody) {
+    if (!mesh.metadata?.draggable || !mesh.physicsBody) {
       return null;
     }
+
+    const physicsBody = mesh.physicsBody;
 
     // Prevent the camera from spinning around
     scene.activeCamera?.detachControl();
@@ -278,21 +266,18 @@ function startDraggableBehaviour(scene: Scene) {
     // fromSphere.isVisible = true;
     fromSphere.position.copyFrom(position);
     toSphere.position.copyFrom(mesh.getAbsolutePosition());
+    function onBeforePhysics() {
+      const worldCentreOfMass = physicsBody.transformNode.absolutePosition.add(
+        physicsBody.getMassProperties().centerOfMass!,
+      );
+      const diff = toSphere.position.subtract(worldCentreOfMass);
 
-    const observer = scene.onBeforePhysicsObservable.add(
-      function onBeforePhysics() {
-        const worldCentreOfMass =
-          physicsBody.transformNode.absolutePosition.add(
-            physicsBody.getMassProperties().centerOfMass!,
-          );
-        const diff = toSphere.position.subtract(worldCentreOfMass);
-
-        physicsBody.applyForce(
-          diff.scale(dampingAndForceFactor),
-          worldCentreOfMass,
-        );
-      },
-    );
+      physicsBody.applyForce(
+        diff.scale(dampingAndForceFactor),
+        worldCentreOfMass,
+      );
+    }
+    const observer = scene.onBeforePhysicsObservable.add(onBeforePhysics);
 
     function onDrag(position: Vector3) {
       // toSphere.isVisible = true;
