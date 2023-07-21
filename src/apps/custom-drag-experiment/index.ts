@@ -46,6 +46,19 @@ import {
   startDragPhysicsBodyByForceBehaviour,
 } from './drag-by-force';
 import { startDragPhysicsBodyByDistanceConstraintsBehaviour } from './drag-by-distance-constraints';
+import { AdvancedDynamicTexture } from '@babylonjs/gui/2D/advancedDynamicTexture';
+import { Button } from '@babylonjs/gui/2D/controls/button';
+import {
+  Button3D,
+  GUI3DManager,
+  HolographicButton,
+  NearMenu,
+  PlanePanel,
+  StackPanel3D,
+  TextBlock,
+  TextWrapping,
+  Vector3WithInfo,
+} from '@babylonjs/gui';
 
 export function createScene(engine: Engine): Scene {
   // Create a BabylonJS scene
@@ -65,8 +78,8 @@ async function populateScene(scene: Scene) {
 
   const camera = new ArcRotateCamera(
     'camera',
-    (150 / 180) * Math.PI,
-    (45 / 180) * Math.PI,
+    (280 / 180) * Math.PI,
+    (60 / 180) * Math.PI,
     23,
     new Vector3(0, 0, 0),
     scene,
@@ -121,50 +134,135 @@ async function populateScene(scene: Scene) {
   const ground = createGround(scene);
   ground.receiveShadows = true;
 
-  const block = createDraggableBlock(scene, materialsPool);
-  block.getChildMeshes(false).forEach(m => shadowGenerator.addShadowCaster(m, false));
+  const dragStyles = {
+    ApplyForce: () =>
+      startDragPhysicsBodyByForceBehaviour(
+        scene,
+        getPhysicsBodyIdDraggableIncludingParents,
+      ),
+    SingleHanging: () =>
+      startDragPhysicsBodyByDistanceConstraintsBehaviour(
+        scene,
+        getPhysicsBodyIdDraggableIncludingParents,
+        [new Vector3(0, 2, 0)],
+      ),
+    SingleCenter: () =>
+      startDragPhysicsBodyByDistanceConstraintsBehaviour(
+        scene,
+        getPhysicsBodyIdDraggableIncludingParents,
+        [new Vector3(0, 0, 0)],
+      ),
+    CenterAndHanging: () =>
+      startDragPhysicsBodyByDistanceConstraintsBehaviour(
+        scene,
+        getPhysicsBodyIdDraggableIncludingParents,
+        [new Vector3(0, 2, 0), new Vector3(0, 0, 0)],
+      ),
+    Crucification: () =>
+      startDragPhysicsBodyByDistanceConstraintsBehaviour(
+        scene,
+        getPhysicsBodyIdDraggableIncludingParents,
+        [new Vector3(1, 1, 0), new Vector3(-1, 1, 0), new Vector3(0, -1, 0)],
+      ),
+    Corners: () =>
+      startDragPhysicsBodyByDistanceConstraintsBehaviour(
+        scene,
+        getPhysicsBodyIdDraggableIncludingParents,
+        [
+          new Vector3(1, 0, 1),
+          new Vector3(-1, 0, 1),
+          new Vector3(1, 0, -1),
+          new Vector3(-1, 0, -1),
+        ],
+      ),
+    HorizontalTriangle: () =>
+      startDragPhysicsBodyByDistanceConstraintsBehaviour(
+        scene,
+        getPhysicsBodyIdDraggableIncludingParents,
+        [new Vector3(0, 0, 1), new Vector3(1, 0, -1), new Vector3(-1, 0, -1)],
+      ),
+    TwoPointSkewer: () =>
+      startDragPhysicsBodyByDistanceConstraintsBehaviour(
+        scene,
+        getPhysicsBodyIdDraggableIncludingParents,
+        [new Vector3(0, 0, 1), new Vector3(0, 0, -1)],
+      ),
+  };
 
-  const SingleHanging = [new Vector3(0, 2, 0)];
-  const Crucification = [
-    new Vector3(1, 1, 0),
-    new Vector3(-1, 1, 0),
-    new Vector3(0, -1, 0),
-  ];
-  const Corners = [
-    new Vector3(1, 0, 1),
-    new Vector3(-1, 0, 1),
-    new Vector3(1, 0, -1),
-    new Vector3(-1, 0, -1),
-  ];
-  const HorizontalTriangle = [
-    new Vector3(0, 0, 1),
-    new Vector3(1, 0, -1),
-    new Vector3(-1, 0, -1),
-  ];
-  const TwoPointSkewer = [
-    new Vector3(0, 0, 1),
-    new Vector3(0, 0, -1),
-  ];
+  let currentDragBehaviour: null | (() => void) = null;
 
-  // TODO: add some radio buttons to toggle between drag behaviours
+  var anchor = new TransformNode('gui anchor');
+  anchor.position = new Vector3(-3, 5, 0);
 
-  // return startDragPhysicsBodyByForceBehaviour(
-  //   scene,
-  //   getPhysicsBodyIdDraggableIncludingParents,
-  // );
-  return startDragPhysicsBodyByDistanceConstraintsBehaviour(
-    scene,
-    getPhysicsBodyIdDraggableIncludingParents,
-    TwoPointSkewer,
+  var manager = new GUI3DManager(scene);
+  var stackPanel = new StackPanel3D(true);
+  stackPanel.margin = 0.2;
+  stackPanel.position.y += 5;
+
+  manager.addControl(stackPanel);
+
+  stackPanel.blockLayout = true;
+  const buttons = Object.entries(dragStyles)
+    .reverse()
+    .map(([name, style]) => {
+      const button = new Button3D(`3d button: ${name}`, {
+        width: 3,
+        height: 0.8,
+      });
+
+      const text = new TextBlock();
+      text.text = name;
+      text.color = 'white';
+      text.fontSize = 30;
+      button.content = text;
+
+      button.onPointerClickObservable.add(() => {
+        currentDragBehaviour && currentDragBehaviour();
+        currentDragBehaviour = style();
+
+        buttons.forEach((b) => {
+          b.scaling.setAll(b === button ? 1.1 : 1);
+          b.content.color = b === button ? 'yellow' : 'white';
+        });
+      });
+
+      stackPanel.addControl(button);
+
+      return button;
+    });
+
+  stackPanel.blockLayout = false;
+
+  stackPanel.linkToTransformNode(anchor);
+
+  // Select the first drag style
+  buttons[buttons.length - 1].onPointerClickObservable.notifyObservers(
+    new Vector3WithInfo(Vector3.ZeroReadOnly),
   );
+
+  // Spawn some blocks
+  for (let i = 0; i < 10; i++) {
+    createDraggableBlock(
+      scene,
+      new Vector3(Math.random() * 10 - 5, 5, Math.random() * 10 - 5),
+      materialsPool,
+    )
+      .getChildMeshes(false)
+      .forEach((m) => shadowGenerator.addShadowCaster(m, false));
+
+    await new Promise((r) => setTimeout(r, 500));
+  }
+
+  return () => currentDragBehaviour && currentDragBehaviour();
 }
 
 function createDraggableBlock(
   scene: Scene,
+  position: Vector3,
   materialsPool: ReturnType<typeof createMaterialsPool>,
 ) {
   const root = new TransformNode('root');
-  root.position.y = 5;
+  root.position = position;
 
   const hue = Math.random();
   const cube = MeshBuilder.CreateBox('cube');

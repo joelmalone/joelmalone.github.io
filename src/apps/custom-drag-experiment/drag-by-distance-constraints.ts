@@ -57,7 +57,7 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
       physicsBody.transformNode.absolutePosition,
     );
 
-    fromSphere.isVisible = true;
+    fromSphere.isVisible = false;
     fromSphere.position.copyFrom(dragStartPosition);
     toSphere.position.copyFrom(dragStartPosition);
 
@@ -97,7 +97,7 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
     (window as any).constraints = constraints;
 
     function onDrag(position: Vector3) {
-      toSphere.isVisible = true;
+      toSphere.isVisible = false;
       toSphere.position.copyFrom(position).addInPlace(new Vector3(0, 2, 0));
     }
 

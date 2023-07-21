@@ -49,7 +49,7 @@ export function startDragPhysicsBodyByForceBehaviour(
     // Prevent the camera from spinning around
     scene.activeCamera?.detachControl();
 
-    fromSphere.isVisible = true;
+    fromSphere.isVisible = false;
     fromSphere.position.copyFrom(dragStartPosition);
     toSphere.position.copyFrom(dragStartPosition);
 
@@ -87,7 +87,7 @@ export function startDragPhysicsBodyByForceBehaviour(
     scene.onBeforePhysicsObservable.add(onBeforePhysics);
 
     function onDrag(position: Vector3) {
-      toSphere.isVisible = true;
+      toSphere.isVisible = false;
       toSphere.position.copyFrom(position).addInPlace(new Vector3(0, 2, 0));
     }
 
