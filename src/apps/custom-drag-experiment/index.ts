@@ -41,12 +41,19 @@ import '@babylonjs/loaders/glTF';
 
 import WasmURL from '/node_modules/@babylonjs/havok/lib/esm/HavokPhysics.wasm?url';
 import MarbleRunPieceURL from './marble-run-piece.glb?url';
+import {
+  getPhysicsBodyIdDraggableIncludingParents,
+  startDragPhysicsBodyByForceBehaviour,
+} from './drag-by-force';
+import { startDragPhysicsBodyByDistanceConstraintsBehaviour } from './drag-by-distance-constraints';
 
 export function createScene(engine: Engine): Scene {
   // Create a BabylonJS scene
   const scene = new Scene(engine);
 
-  populateScene(scene);
+  populateScene(scene).then((dispose) =>
+    scene.onDisposeObservable.addOnce(dispose),
+  );
 
   return scene;
 }
@@ -114,9 +121,42 @@ async function populateScene(scene: Scene) {
   const ground = createGround(scene);
   ground.receiveShadows = true;
 
-  startDraggableBehaviour(scene, materialsPool);
+  const block = createDraggableBlock(scene, materialsPool);
+  block.getChildMeshes(false).forEach(m => shadowGenerator.addShadowCaster(m, false));
 
-  createDraggableBlock(scene, materialsPool);
+  const SingleHanging = [new Vector3(0, 2, 0)];
+  const Crucification = [
+    new Vector3(1, 1, 0),
+    new Vector3(-1, 1, 0),
+    new Vector3(0, -1, 0),
+  ];
+  const Corners = [
+    new Vector3(1, 0, 1),
+    new Vector3(-1, 0, 1),
+    new Vector3(1, 0, -1),
+    new Vector3(-1, 0, -1),
+  ];
+  const HorizontalTriangle = [
+    new Vector3(0, 0, 1),
+    new Vector3(1, 0, -1),
+    new Vector3(-1, 0, -1),
+  ];
+  const TwoPointSkewer = [
+    new Vector3(0, 0, 1),
+    new Vector3(0, 0, -1),
+  ];
+
+  // TODO: add some radio buttons to toggle between drag behaviours
+
+  // return startDragPhysicsBodyByForceBehaviour(
+  //   scene,
+  //   getPhysicsBodyIdDraggableIncludingParents,
+  // );
+  return startDragPhysicsBodyByDistanceConstraintsBehaviour(
+    scene,
+    getPhysicsBodyIdDraggableIncludingParents,
+    TwoPointSkewer,
+  );
 }
 
 function createDraggableBlock(
@@ -150,6 +190,8 @@ function createDraggableBlock(
   const body = new PhysicsBody(root, PhysicsMotionType.DYNAMIC, false, scene);
   body.shape = parentShape;
 
+  body.setMassProperties({ mass: 1 });
+
   root.metadata = { draggable: true };
 
   return root;
@@ -175,224 +217,6 @@ function createGround(scene: Scene) {
   );
 
   return mesh;
-}
-
-function startDraggableBehaviour(
-  scene: Scene,
-  materialsPool: ReturnType<typeof createMaterialsPool>,
-) {
-  const fromSphere = MeshBuilder.CreateSphere(
-    'from sphere',
-    { diameter: 0.5 },
-    scene,
-  );
-  fromSphere.material = materialsPool.fromHue(0);
-  const toSphere1 = MeshBuilder.CreateSphere(
-    'to sphere',
-    { diameter: 0.5 },
-    scene,
-  );
-  toSphere1.material = materialsPool.fromHue(0.25);
-
-  fromSphere.isVisible = false;
-  toSphere1.isVisible = false;
-
-  const dampingAndForceFactor = 500;
-
-  function getDraggable(pickedMesh: AbstractMesh): PhysicsBody | null {
-    let node: Node | null = pickedMesh;
-    while (node) {
-      if (
-        node.metadata?.draggable &&
-        'physicsBody' in node &&
-        node.physicsBody
-      ) {
-        return node.physicsBody as PhysicsBody;
-      }
-      node = node.parent;
-    }
-
-    return null;
-  }
-
-  function onStart(mesh: AbstractMesh, dragStartPosition: Vector3) {
-    const physicsBody = getDraggable(mesh);
-    if (!physicsBody) {
-      return null;
-    }
-
-    // Prevent the camera from spinning around
-    scene.activeCamera?.detachControl();
-
-    fromSphere.isVisible = true;
-    fromSphere.position.copyFrom(dragStartPosition);
-    toSphere1.position.copyFrom(dragStartPosition);
-
-    const pickPointOffset = dragStartPosition.subtract(
-      physicsBody.transformNode.absolutePosition,
-    );
-
-    const gravityFactor = physicsBody.getGravityFactor();
-    const linearDamping = physicsBody.getLinearDamping();
-    const massProperties = physicsBody.getMassProperties();
-
-    physicsBody.setGravityFactor(0);
-    physicsBody.setLinearDamping(dampingAndForceFactor);
-    physicsBody.setMassProperties({ mass: 1, inertia: new Vector3(0, 0, 0) });
-
-    const onBeforePhysics = () => {
-      const diff = toSphere1.position
-        .subtract(pickPointOffset)
-        .subtract(physicsBody.transformNode.absolutePosition);
-
-      const worldCentreOfMass = physicsBody.transformNode.absolutePosition.add(
-        physicsBody.getMassProperties().centerOfMass!,
-      );
-
-      physicsBody.applyForce(
-        diff.scale(dampingAndForceFactor),
-        worldCentreOfMass,
-      );
-    };
-    const observer = scene.onBeforePhysicsObservable.add(onBeforePhysics);
-
-    function onDrag(position: Vector3) {
-      toSphere1.isVisible = true;
-      toSphere1.position.copyFrom(position).addInPlace(new Vector3(0, 2, 0));
-    }
-
-    const onEnd = () => {
-      scene.onBeforePhysicsObservable.remove(observer);
-
-      physicsBody.setGravityFactor(gravityFactor);
-      physicsBody.setLinearDamping(linearDamping);
-      physicsBody.setMassProperties(massProperties!);
-
-      fromSphere.isVisible = false;
-      toSphere1.isVisible = false;
-
-      // Re-enable camera spinning
-      scene.activeCamera?.attachControl();
-    };
-
-    return { onDrag, onEnd };
-  }
-
-  return startCustomDragBehaviour(scene, onStart);
-}
-
-export function startCustomDragBehaviour(
-  scene: Scene,
-  onStart: (
-    mesh: AbstractMesh,
-    position: Vector3,
-  ) => null | {
-    onDrag: (position: Vector3, plane: Plane) => void;
-    onEnd: () => void;
-  },
-) {
-  // Get the smallest of the screen's width or height
-  const screenSize = Math.min(
-    scene.getEngine().getRenderWidth(),
-    scene.getEngine().getRenderHeight(),
-  );
-
-  // From the screen size, define a box that is 10% of the size
-  // of the screen - this is effectively the max drag range of
-  // the mouse drag, from the start point, in all 4 directions
-  const planeActivationLength = 0.1 * screenSize;
-
-  let currentDrag: {
-    startXY: Vector2;
-    startPosition: Vector3;
-    mesh: AbstractMesh;
-    onDrag: (position: Vector3, plane: Plane) => void;
-    onEnd: () => void;
-  } | null = null;
-  let plane: null | Plane = null;
-
-  const observer = scene.onPointerObservable.add((pointerInfo) => {
-    const pickInfo = pointerInfo.pickInfo;
-    const pickedPoint = pickInfo!.pickedPoint;
-    const pickedMesh = pickInfo!.pickedMesh;
-
-    switch (pointerInfo.type) {
-      case PointerEventTypes.POINTERDOWN:
-        if (pickedPoint && pickedMesh) {
-          if (currentDrag) {
-            currentDrag.onEnd();
-
-            currentDrag = null;
-            plane = null;
-          }
-
-          const state = onStart(pickedMesh, pickedPoint);
-          if (!state) {
-            return;
-          }
-
-          currentDrag = {
-            startXY: new Vector2(
-              pointerInfo.event.clientX,
-              pointerInfo.event.clientY,
-            ),
-            startPosition: pickedPoint,
-            mesh: pickedMesh,
-            ...state,
-          };
-          plane = null;
-        }
-        break;
-
-      case PointerEventTypes.POINTERMOVE:
-        if (!currentDrag) {
-          return;
-        }
-
-        const ray = pickInfo!.ray;
-        if (ray) {
-          if (!plane) {
-            const dragXY = new Vector2(
-              pointerInfo.event.clientX,
-              pointerInfo.event.clientY,
-            ).subtract(currentDrag.startXY!);
-            if (dragXY.length() < planeActivationLength) {
-              return;
-            }
-
-            const isVerticalDrag = dragXY.normalize().y < -0.7;
-
-            const normal = isVerticalDrag
-              ? new Vector3(-ray.direction.x, 0, -ray.direction.z).normalize()
-              : Vector3.UpReadOnly;
-            plane = Plane.FromPositionAndNormal(
-              currentDrag.startPosition,
-              normal,
-            );
-          }
-
-          const t = ray.intersectsPlane(plane);
-          if (t !== null) {
-            const position = ray.origin.add(ray.direction.scale(t));
-            currentDrag.onDrag(position, plane);
-          }
-        }
-        break;
-
-      case PointerEventTypes.POINTERUP:
-        if (currentDrag) {
-          currentDrag.onEnd();
-
-          currentDrag = null;
-          plane = null;
-        }
-        break;
-    }
-  });
-
-  return function dispose() {
-    scene.onPointerObservable.remove(observer);
-  };
 }
 
 function createMaterialsPool(scene: Scene) {
