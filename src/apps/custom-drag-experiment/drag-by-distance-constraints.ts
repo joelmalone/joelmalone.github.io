@@ -109,42 +109,34 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
       }
 
       const turn = (90 * Math.PI) / 180;
+      const rotation = new Quaternion();
 
-      // Order of rotation is important - we want to rotate around world Y,
-      // then apply the existing targetRotation, which results in this
-      // awkward expressions...
       switch (direction) {
         case 'up':
-          targetRotation.copyFrom(
-            Quaternion.RotationAxis(
-              camera.getDirection(Vector3.LeftReadOnly),
-              -turn,
-            ).multiplyInPlace(targetRotation),
+          Quaternion.RotationAxisToRef(
+            camera.getDirection(Vector3.LeftReadOnly),
+            -turn,
+            rotation,
           );
           break;
         case 'down':
-          targetRotation.copyFrom(
-            Quaternion.RotationAxis(
-              camera.getDirection(Vector3.LeftReadOnly),
-              turn,
-            ).multiplyInPlace(targetRotation),
+          Quaternion.RotationAxisToRef(
+            camera.getDirection(Vector3.LeftReadOnly),
+            turn,
+            rotation,
           );
           break;
         case 'left':
-          targetRotation.copyFrom(
-            Quaternion.RotationAxis(camera.upVector, turn).multiplyInPlace(
-              targetRotation,
-            ),
-          );
+          Quaternion.RotationAxisToRef(camera.upVector, turn, rotation);
           break;
         case 'right':
-          targetRotation.copyFrom(
-            Quaternion.RotationAxis(camera.upVector, -turn).multiplyInPlace(
-              targetRotation,
-            ),
-          );
+          Quaternion.RotationAxisToRef(camera.upVector, -turn, rotation);
           break;
       }
+      // Order of rotation is important - we want to perform our spin in world
+      // space, then apply the existing targetRotation, which results in this
+      // awkward expression...
+      targetRotation.copyFrom(rotation.multiplyInPlace(targetRotation));
     };
 
     const keyMappings = {
