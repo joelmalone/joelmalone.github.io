@@ -15,7 +15,7 @@ import {
 } from '@babylonjs/core/Physics/v2';
 import { Scene } from '@babylonjs/core/scene';
 import { startCustomDragBehaviour } from './drag-behaviour';
-import { Axis, TransformNode } from '@babylonjs/core';
+import { Axis, KeyboardEventTypes, TransformNode } from '@babylonjs/core';
 
 export type Predicate = (mesh: AbstractMesh) => PhysicsBody | null;
 
@@ -44,6 +44,8 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
     { diameter: 0.5 },
     scene,
   );
+  const toSphereRotation = (toSphere.rotationQuaternion =
+    Quaternion.Identity());
 
   fromSphere.isVisible = false;
   toSphere.isVisible = false;
@@ -57,23 +59,32 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
     // Prevent the camera from spinning around
     scene.activeCamera?.detachControl();
 
-    const pickPointOffset = dragStartPosition.subtract(
-      physicsBody.transformNode.absolutePosition,
+    const targetPosition = physicsBody.transformNode.absolutePosition.clone();
+    const targetRotation = physicsBody.transformNode.absoluteRotationQuaternion.clone();
+    console.log(
+      'physicsBody.transformNode',
+      physicsBody.transformNode.name,
+      physicsBody.transformNode,
     );
-
-    const targetPosition = dragStartPosition.clone();
-    // TODO: infer from the dragged mesh's current rotation
-    const targetRotation = Quaternion.Identity();
-    const toSphereRotation = (toSphere.rotationQuaternion =
-      Quaternion.Identity());
-    let hasMoved = false;
 
     fromSphere.isVisible = false;
     fromSphere.position.copyFrom(targetPosition);
     toSphere.position.copyFrom(targetPosition);
     toSphereRotation.copyFrom(targetRotation);
 
-    const onBeforeRender = scene.onBeforeRenderObservable.add(() => {
+    const pickPointOffset = dragStartPosition.subtract(
+      physicsBody.transformNode.absolutePosition,
+    );
+
+    console.log('Drag started.', {
+      targetPosition,
+      pickPointOffset,
+      targetRotation: targetRotation.toEulerAngles(),
+    });
+
+    let hasMoved = false;
+
+    const onBeforePhysics = scene.onBeforePhysicsObservable.add(() => {
       if (hasMoved) {
         const positionDiff = targetPosition.subtract(toSphere.position);
         toSphere.position.addInPlace(
@@ -89,54 +100,71 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
       }
     });
 
-    let i = 0;
-    const interval = setInterval(() => {
+    type SpinDirection = 'up' | 'down' | 'left' | 'right';
+    const spin = (direction: SpinDirection) => {
       const camera = scene.activeCamera;
       if (!camera) {
         return;
       }
 
       const turn = (90 * Math.PI) / 180;
-
       const change = new Quaternion();
-      switch (i % 4) {
-        case 0:
+
+      switch (direction) {
+        case 'up':
           Quaternion.RotationAxisToRef(
             camera.getDirection(Axis.X),
             turn,
             change,
           );
           break;
-        case 1:
+        case 'down':
           Quaternion.RotationAxisToRef(
             camera.getDirection(Axis.X),
             -turn,
             change,
           );
           break;
-        case 2:
-          camera;
+        case 'left':
           Quaternion.RotationAxisToRef(Vector3.UpReadOnly, -turn, change);
           break;
-        case 3:
+        case 'right':
           Quaternion.RotationAxisToRef(Vector3.UpReadOnly, turn, change);
           break;
       }
       targetRotation.multiplyInPlace(change);
+    };
 
-      i++;
-    }, 1500);
+    const keyMappings = {
+      up: ['w', 'ArrowUp'],
+      down: ['s', 'ArrowDown'],
+      left: ['a', 'ArrowLeft'],
+      right: ['d', 'ArrowRight'],
+    };
+
+    const onKeyboard = scene.onKeyboardObservable.add((ev) => {
+      if (ev.type === KeyboardEventTypes.KEYUP) {
+        const spinDirection = Object.entries(keyMappings)
+          .filter(([, keys]) => keys.includes(ev.event.key))
+          .map(([spinDirection]) => spinDirection as SpinDirection)[0];
+
+        if (spinDirection) {
+          spin(spinDirection);
+        }
+      }
+    });
 
     const constraints = constraintsDirections
-      .map((v) => v.scale(1))
+      // TODO: experiment with combinations of scale and joint dist
+      // .map((v) => v.scale(1))
       .map((dir) => {
         const sphere = MeshBuilder.CreateSphere(
-          'to sphere',
+          'constraint sphere',
           { diameter: 0.5 },
           scene,
         );
         sphere.parent = toSphere;
-        sphere.position = dir.subtract(pickPointOffset);
+        sphere.position = dir;
         const sphereBody = new PhysicsBody(
           sphere,
           PhysicsMotionType.ANIMATED,
@@ -147,7 +175,7 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
 
         // TODO: wait for SpringConstraint to be released:
         // https://github.com/BabylonJS/Babylon.js/blob/master/CHANGELOG.md
-        const constraint = new DistanceConstraint(0.02, scene);
+        const constraint = new DistanceConstraint(0.01, scene);
         constraint.options.pivotA = Vector3.ZeroReadOnly;
         constraint.options.pivotB = dir;
 
@@ -165,13 +193,12 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
     function onDrag(position: Vector3) {
       hasMoved = true;
       toSphere.isVisible = false;
-      // toSphere.position.copyFrom(position).addInPlace(new Vector3(0, 2, 0));
-      targetPosition.copyFrom(position).addInPlace(new Vector3(0, 2, 0));
+      targetPosition.copyFrom(position).subtractInPlace(pickPointOffset).addInPlace(new Vector3(0, 2, 0));
     }
 
     const onEnd = () => {
-      clearInterval(interval);
-      scene.onBeforeRenderObservable.remove(onBeforeRender);
+      scene.onKeyboardObservable.remove(onKeyboard);
+      scene.onBeforePhysicsObservable.remove(onBeforePhysics);
 
       fromSphere.isVisible = false;
       toSphere.isVisible = false;
