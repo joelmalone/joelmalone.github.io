@@ -60,7 +60,8 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
     scene.activeCamera?.detachControl();
 
     const targetPosition = physicsBody.transformNode.absolutePosition.clone();
-    const targetRotation = physicsBody.transformNode.absoluteRotationQuaternion.clone();
+    const targetRotation =
+      physicsBody.transformNode.absoluteRotationQuaternion.clone();
     console.log(
       'physicsBody.transformNode',
       physicsBody.transformNode.name,
@@ -90,14 +91,14 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
         toSphere.position.addInPlace(
           positionDiff.scale((scene.deltaTime / 1000) * 5),
         );
-
-        const rotation = Quaternion.Slerp(
-          toSphereRotation,
-          targetRotation,
-          (scene.deltaTime / 1000) * 5,
-        );
-        toSphereRotation.copyFrom(rotation);
       }
+
+      const rotation = Quaternion.Slerp(
+        toSphereRotation,
+        targetRotation,
+        (scene.deltaTime / 1000) * 5,
+      );
+      toSphereRotation.copyFrom(rotation);
     });
 
     type SpinDirection = 'up' | 'down' | 'left' | 'right';
@@ -108,31 +109,42 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
       }
 
       const turn = (90 * Math.PI) / 180;
-      const change = new Quaternion();
 
+      // Order of rotation is important - we want to rotate around world Y,
+      // then apply the existing targetRotation, which results in this
+      // awkward expressions...
       switch (direction) {
         case 'up':
-          Quaternion.RotationAxisToRef(
-            camera.getDirection(Axis.X),
-            turn,
-            change,
+          targetRotation.copyFrom(
+            Quaternion.RotationAxis(
+              camera.getDirection(Vector3.LeftReadOnly),
+              -turn,
+            ).multiplyInPlace(targetRotation),
           );
           break;
         case 'down':
-          Quaternion.RotationAxisToRef(
-            camera.getDirection(Axis.X),
-            -turn,
-            change,
+          targetRotation.copyFrom(
+            Quaternion.RotationAxis(
+              camera.getDirection(Vector3.LeftReadOnly),
+              turn,
+            ).multiplyInPlace(targetRotation),
           );
           break;
         case 'left':
-          Quaternion.RotationAxisToRef(Vector3.UpReadOnly, -turn, change);
+          targetRotation.copyFrom(
+            Quaternion.RotationAxis(camera.upVector, turn).multiplyInPlace(
+              targetRotation,
+            ),
+          );
           break;
         case 'right':
-          Quaternion.RotationAxisToRef(Vector3.UpReadOnly, turn, change);
+          targetRotation.copyFrom(
+            Quaternion.RotationAxis(camera.upVector, -turn).multiplyInPlace(
+              targetRotation,
+            ),
+          );
           break;
       }
-      targetRotation.multiplyInPlace(change);
     };
 
     const keyMappings = {
@@ -193,7 +205,10 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
     function onDrag(position: Vector3) {
       hasMoved = true;
       toSphere.isVisible = false;
-      targetPosition.copyFrom(position).subtractInPlace(pickPointOffset).addInPlace(new Vector3(0, 2, 0));
+      targetPosition
+        .copyFrom(position)
+        .subtractInPlace(pickPointOffset)
+        .addInPlace(new Vector3(0, 2, 0));
     }
 
     const onEnd = () => {
