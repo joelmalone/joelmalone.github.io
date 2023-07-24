@@ -1,6 +1,10 @@
 import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
 import { Plane } from '@babylonjs/core/Maths/math.plane';
-import { Vector2, Vector3 } from '@babylonjs/core/Maths/math.vector';
+import {
+  Quaternion,
+  Vector2,
+  Vector3,
+} from '@babylonjs/core/Maths/math.vector';
 import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { Node } from '@babylonjs/core/node';
@@ -11,7 +15,7 @@ import {
 } from '@babylonjs/core/Physics/v2';
 import { Scene } from '@babylonjs/core/scene';
 import { startCustomDragBehaviour } from './drag-behaviour';
-import { TransformNode } from '@babylonjs/core';
+import { Axis, TransformNode } from '@babylonjs/core';
 
 export type Predicate = (mesh: AbstractMesh) => PhysicsBody | null;
 
@@ -57,9 +61,71 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
       physicsBody.transformNode.absolutePosition,
     );
 
+    const targetPosition = dragStartPosition.clone();
+    // TODO: infer from the dragged mesh's current rotation
+    const targetRotation = Quaternion.Identity();
+    const toSphereRotation = (toSphere.rotationQuaternion =
+      Quaternion.Identity());
+    let hasMoved = false;
+
     fromSphere.isVisible = false;
-    fromSphere.position.copyFrom(dragStartPosition);
-    toSphere.position.copyFrom(dragStartPosition);
+    fromSphere.position.copyFrom(targetPosition);
+    toSphere.position.copyFrom(targetPosition);
+    toSphereRotation.copyFrom(targetRotation);
+
+    const onBeforeRender = scene.onBeforeRenderObservable.add(() => {
+      if (hasMoved) {
+        const positionDiff = targetPosition.subtract(toSphere.position);
+        toSphere.position.addInPlace(
+          positionDiff.scale((scene.deltaTime / 1000) * 5),
+        );
+
+        const rotation = Quaternion.Slerp(
+          toSphereRotation,
+          targetRotation,
+          (scene.deltaTime / 1000) * 5,
+        );
+        toSphereRotation.copyFrom(rotation);
+      }
+    });
+
+    let i = 0;
+    const interval = setInterval(() => {
+      const camera = scene.activeCamera;
+      if (!camera) {
+        return;
+      }
+
+      const turn = (90 * Math.PI) / 180;
+
+      const change = new Quaternion();
+      switch (i % 4) {
+        case 0:
+          Quaternion.RotationAxisToRef(
+            camera.getDirection(Axis.X),
+            turn,
+            change,
+          );
+          break;
+        case 1:
+          Quaternion.RotationAxisToRef(
+            camera.getDirection(Axis.X),
+            -turn,
+            change,
+          );
+          break;
+        case 2:
+          camera;
+          Quaternion.RotationAxisToRef(Vector3.UpReadOnly, -turn, change);
+          break;
+        case 3:
+          Quaternion.RotationAxisToRef(Vector3.UpReadOnly, turn, change);
+          break;
+      }
+      targetRotation.multiplyInPlace(change);
+
+      i++;
+    }, 1500);
 
     const constraints = constraintsDirections
       .map((v) => v.scale(1))
@@ -81,10 +147,10 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
 
         // TODO: wait for SpringConstraint to be released:
         // https://github.com/BabylonJS/Babylon.js/blob/master/CHANGELOG.md
-        const constraint = new DistanceConstraint(0, scene);
-
+        const constraint = new DistanceConstraint(0.02, scene);
         constraint.options.pivotA = Vector3.ZeroReadOnly;
         constraint.options.pivotB = dir;
+
         sphereBody.addConstraint(physicsBody, constraint);
 
         return {
@@ -97,11 +163,16 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
     (window as any).constraints = constraints;
 
     function onDrag(position: Vector3) {
+      hasMoved = true;
       toSphere.isVisible = false;
-      toSphere.position.copyFrom(position).addInPlace(new Vector3(0, 2, 0));
+      // toSphere.position.copyFrom(position).addInPlace(new Vector3(0, 2, 0));
+      targetPosition.copyFrom(position).addInPlace(new Vector3(0, 2, 0));
     }
 
     const onEnd = () => {
+      clearInterval(interval);
+      scene.onBeforeRenderObservable.remove(onBeforeRender);
+
       fromSphere.isVisible = false;
       toSphere.isVisible = false;
       constraints.forEach(({ sphere, constraint, sphereBody }) => {

@@ -158,7 +158,7 @@ async function populateScene(scene: Scene) {
         getPhysicsBodyIdDraggableIncludingParents,
         [new Vector3(0, 2, 0), new Vector3(0, 0, 0)],
       ),
-    Crucification: () =>
+    Crucifixion: () =>
       startDragPhysicsBodyByDistanceConstraintsBehaviour(
         scene,
         getPhysicsBodyIdDraggableIncludingParents,
