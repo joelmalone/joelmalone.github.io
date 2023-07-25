@@ -32,7 +32,12 @@ export function startCanvasApp(
   var frameDurations: number[] = [];
 
   function draw() {
-    // Create an imageDta to fit the entire canvas
+    // Scale down the canvas so we're working with less pixels, giving us better
+    // performance at the cost of visual fidelity
+    canvasElement.width = canvasElement.clientWidth / 2;
+    canvasElement.height = canvasElement.clientHeight / 2;
+
+    // Create an imageData to fit the entire canvas
     const imageData = context2d.createImageData(
       canvasElement.width,
       canvasElement.height,
@@ -64,7 +69,7 @@ export function startCanvasApp(
         // Continuous: map from [-2,2] to [0,256]
         // const b = ((f + 2) / 4) * 256;
         // Zero: render black where intensity is 0 (with tolerance)
-        const b = Math.abs(f) < 0.1 ?  SatchedPeach:Black;
+        const b = Math.abs(f) < 0.1 ? SatchedPeach : Black;
         // One and negative one ("peaks and troughs")
         // const b = Math.abs(f) > .9 ? 255 : 0;
         // One ("peaks")
