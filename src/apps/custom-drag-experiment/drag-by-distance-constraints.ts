@@ -101,17 +101,28 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
       toSphereRotation.copyFrom(rotation);
     });
 
-    type SpinDirection = 'up' | 'down' | 'left' | 'right';
-    const spin = (direction: SpinDirection) => {
+    type SpinCommand = 'up' | 'down' | 'left' | 'right' | 'reset';
+    const spin = (spinCommand: SpinCommand) => {
       const camera = scene.activeCamera;
       if (!camera) {
         return;
       }
 
-      const turn = (90 * Math.PI) / 180;
+      const turn = (45 * Math.PI) / 180;
       const rotation = new Quaternion();
 
-      switch (direction) {
+      switch (spinCommand) {
+        case 'reset':
+          const cameraForwardFlat = camera.getDirection(new Vector3(0, 0, 1));
+          cameraForwardFlat.y = 0;
+          cameraForwardFlat.normalize();
+          const newRotation = Quaternion.FromLookDirectionLH(
+            cameraForwardFlat,
+            camera.upVector,
+          );
+          targetRotation.copyFrom(newRotation);
+          return;
+
         case 'up':
           Quaternion.RotationAxisToRef(
             camera.getDirection(Vector3.LeftReadOnly),
@@ -140,6 +151,7 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
     };
 
     const keyMappings = {
+      reset: [' ', 'x'],
       up: ['w', 'ArrowUp'],
       down: ['s', 'ArrowDown'],
       left: ['a', 'ArrowLeft'],
@@ -148,12 +160,12 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
 
     const onKeyboard = scene.onKeyboardObservable.add((ev) => {
       if (ev.type === KeyboardEventTypes.KEYUP) {
-        const spinDirection = Object.entries(keyMappings)
+        const spinCommand = Object.entries(keyMappings)
           .filter(([, keys]) => keys.includes(ev.event.key))
-          .map(([spinDirection]) => spinDirection as SpinDirection)[0];
+          .map(([spinCommand]) => spinCommand as SpinCommand)[0];
 
-        if (spinDirection) {
-          spin(spinDirection);
+        if (spinCommand) {
+          spin(spinCommand);
         }
       }
     });
