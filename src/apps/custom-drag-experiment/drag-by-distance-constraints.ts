@@ -1,10 +1,4 @@
-import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
-import { Plane } from '@babylonjs/core/Maths/math.plane';
-import {
-  Quaternion,
-  Vector2,
-  Vector3,
-} from '@babylonjs/core/Maths/math.vector';
+import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { Node } from '@babylonjs/core/node';
@@ -15,7 +9,7 @@ import {
 } from '@babylonjs/core/Physics/v2';
 import { Scene } from '@babylonjs/core/scene';
 import { startCustomDragBehaviour } from './drag-behaviour';
-import { Axis, KeyboardEventTypes, TransformNode } from '@babylonjs/core';
+import { KeyboardEventTypes } from '@babylonjs/core';
 
 export type Predicate = (mesh: AbstractMesh) => PhysicsBody | null;
 

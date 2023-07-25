@@ -1,6 +1,4 @@
-import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
-import { Plane } from '@babylonjs/core/Maths/math.plane';
-import { Vector2, Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { Node } from '@babylonjs/core/node';

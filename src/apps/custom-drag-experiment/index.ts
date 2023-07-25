@@ -1,4 +1,4 @@
-// http://localhost:5173/standalone.html?app=marble-run&hax
+// http://localhost:5173/standalone.html?app=custom-drag-experiment&hax
 
 // https://doc.babylonjs.com/features/featuresDeepDive/physics/constraints
 // https://doc.babylonjs.com/typedoc/classes/EasingFunction
@@ -9,28 +9,17 @@ import {
   HemisphericLight,
   TransformNode,
   Scene,
-  Vector2,
   Vector3,
   MeshBuilder,
   ArcRotateCamera,
   HavokPlugin,
   PhysicsAggregate,
   PhysicsShapeType,
-  Mesh,
-  Node,
   Color3,
   StandardMaterial,
   ShadowGenerator,
-  AbstractMesh,
-  SceneLoader,
-  Plane,
-  PointerEventTypes,
-  Scalar,
-  Material,
-  Animation,
   PhysicsBody,
   PhysicsMotionType,
-  PhysicsImpostor,
   PhysicsShapeBox,
   PhysicsShapeSphere,
   Quaternion,
@@ -38,27 +27,20 @@ import {
 } from '@babylonjs/core/Legacy/legacy';
 import HavokPhysics from '@babylonjs/havok';
 import '@babylonjs/loaders/glTF';
-
-import WasmURL from '/node_modules/@babylonjs/havok/lib/esm/HavokPhysics.wasm?url';
-import MarbleRunPieceURL from './marble-run-piece.glb?url';
 import {
   getPhysicsBodyIdDraggableIncludingParents,
   startDragPhysicsBodyByForceBehaviour,
 } from './drag-by-force';
 import { startDragPhysicsBodyByDistanceConstraintsBehaviour } from './drag-by-distance-constraints';
-import { AdvancedDynamicTexture } from '@babylonjs/gui/2D/advancedDynamicTexture';
-import { Button } from '@babylonjs/gui/2D/controls/button';
 import {
   Button3D,
   GUI3DManager,
-  HolographicButton,
-  NearMenu,
-  PlanePanel,
   StackPanel3D,
   TextBlock,
-  TextWrapping,
   Vector3WithInfo,
 } from '@babylonjs/gui';
+
+import WasmURL from '/node_modules/@babylonjs/havok/lib/esm/HavokPhysics.wasm?url';
 
 export function createScene(engine: Engine): Scene {
   // Create a BabylonJS scene
