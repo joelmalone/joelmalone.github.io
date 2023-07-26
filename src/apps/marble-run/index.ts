@@ -3,37 +3,42 @@
 // https://doc.babylonjs.com/features/featuresDeepDive/physics/constraints
 // https://doc.babylonjs.com/typedoc/classes/BABYLON.EasingFunction
 
-import {
-  Engine,
-  DirectionalLight,
-  HemisphericLight,
-  TransformNode,
-  Scene,
-  Vector2,
-  Vector3,
-  MeshBuilder,
-  ArcRotateCamera,
-  HavokPlugin,
-  PhysicsAggregate,
-  PhysicsShapeType,
-  Mesh,
-  Node,
-  Color3,
-  StandardMaterial,
-  ShadowGenerator,
-  AbstractMesh,
-  SceneLoader,
-  Plane,
-  PointerEventTypes,
-  Scalar,
-  Material,
-  Animation,
-} from '@babylonjs/core/Legacy/legacy';
 import HavokPhysics from '@babylonjs/havok';
+import { Engine } from '@babylonjs/core/Engines/engine';
+import { Scene } from '@babylonjs/core/scene';
+import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
+import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Vector2, Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
+import { HavokPlugin } from '@babylonjs/core/Physics/v2/Plugins/havokPlugin';
+import { Node } from '@babylonjs/core/node';
+import { Animation } from '@babylonjs/core/Animations/animation';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import { PhysicsShapeType } from '@babylonjs/core/Physics/v2/IPhysicsEnginePlugin';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { PhysicsAggregate } from '@babylonjs/core/Physics/v2/physicsAggregate';
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { Scalar } from '@babylonjs/core/Maths/math.scalar';
+import { Material } from '@babylonjs/core/Materials/material';
+import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
+import { Plane } from '@babylonjs/core/Maths/math.plane';
+import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
+import { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
+
+// Import components as per https://doc.babylonjs.com/setup/frameworkPackages/es6Support
+import '@babylonjs/core/Physics/physicsEngineComponent';
 import '@babylonjs/loaders/glTF';
+import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent';
+import '@babylonjs/core/Animations/animatable';
+import '@babylonjs/core/Culling/ray';
 
 import WasmURL from '/node_modules/@babylonjs/havok/lib/esm/HavokPhysics.wasm?url';
 import MarbleRunPieceURL from './marble-run-piece.glb?url';
+
+// TODO: doesn't work! no error
 
 export function createScene(engine: Engine): Scene {
   // Create a BabylonJS scene
@@ -121,10 +126,14 @@ async function populateScene(scene: Scene) {
   const [containerMesh] = container.meshes;
 
   function isMesh(node: Node): node is Mesh {
-    return node.constructor.name === 'Mesh';
+    return node.getClassName() === 'Mesh';
   }
 
   if (!isMesh(containerMesh)) {
+    console.error(
+      'The loaded AbstractMesh is not a Mesh, so we can not bake the transform.',
+      containerMesh,
+    );
     return;
   }
 

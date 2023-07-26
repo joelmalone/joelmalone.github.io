@@ -8,8 +8,8 @@ import {
   PhysicsMotionType,
 } from '@babylonjs/core/Physics/v2';
 import { Scene } from '@babylonjs/core/scene';
+import { KeyboardEventTypes } from '@babylonjs/core/Events/keyboardEvents';
 import { startCustomDragBehaviour } from './drag-behaviour';
-import { KeyboardEventTypes } from '@babylonjs/core';
 
 export type Predicate = (mesh: AbstractMesh) => PhysicsBody | null;
 
@@ -80,17 +80,21 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
     let hasMoved = false;
 
     const onBeforePhysics = scene.onBeforePhysicsObservable.add(() => {
+      const deltaSecs = scene.getPhysicsEngine()?.getTimeStep();
+
+      if (!deltaSecs) {
+        return;
+      }
+
       if (hasMoved) {
         const positionDiff = targetPosition.subtract(toSphere.position);
-        toSphere.position.addInPlace(
-          positionDiff.scale((scene.deltaTime / 1000) * 5),
-        );
+        toSphere.position.addInPlace(positionDiff.scale(deltaSecs * 5));
       }
 
       const rotation = Quaternion.Slerp(
         toSphereRotation,
         targetRotation,
-        (scene.deltaTime / 1000) * 5,
+        deltaSecs * 5,
       );
       toSphereRotation.copyFrom(rotation);
     });

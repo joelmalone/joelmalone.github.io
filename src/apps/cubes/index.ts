@@ -1,84 +1,103 @@
-import * as BABYLON from '@babylonjs/core/Legacy/legacy';
+import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
+import { Engine } from '@babylonjs/core/Engines/engine';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Scene } from '@babylonjs/core/scene';
 import { ShadowOnlyMaterial } from '@babylonjs/materials';
+import { Animation } from '@babylonjs/core/Animations/animation';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import { CannonJSPlugin } from '@babylonjs/core/Physics/v1/Plugins/cannonJSPlugin';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { PhysicsImpostor } from '@babylonjs/core/Physics/v1/physicsImpostor';
+import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
+import { CascadedShadowGenerator } from '@babylonjs/core/Lights/Shadows/cascadedShadowGenerator';
+import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
+import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
+import { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
+import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
+import { ActionManager } from '@babylonjs/core/Actions/actionManager';
+import { ExecuteCodeAction } from '@babylonjs/core/Actions/directActions';
+
 import CANNON from 'cannon';
 window.CANNON = CANNON;
 
-export function createScene(
-  engine: BABYLON.Engine,
-  canvasElement: HTMLCanvasElement,
-): BABYLON.Scene {
-  engine.enableOfflineSupport = false;
-  BABYLON.Animation.AllowMatricesInterpolation = true;
-  var scene = new BABYLON.Scene(engine);
+// Import components as per https://doc.babylonjs.com/setup/frameworkPackages/es6Support
+import '@babylonjs/core/Physics/physicsEngineComponent';
+import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent';
+import '@babylonjs/core/Culling/ray';
 
-  const camera = new BABYLON.ArcRotateCamera(
+export function createScene(
+  engine: Engine,
+  canvasElement: HTMLCanvasElement,
+): Scene {
+  engine.enableOfflineSupport = false;
+  Animation.AllowMatricesInterpolation = true;
+  var scene = new Scene(engine);
+
+  const camera = new ArcRotateCamera(
     'Camera',
     Math.PI / 6,
     Math.PI / 4,
     50,
-    BABYLON.Vector3.Zero(),
+    Vector3.Zero(),
     scene,
   );
-  camera.setTarget(BABYLON.Vector3.Zero());
+  camera.setTarget(Vector3.Zero());
 
-  scene.enablePhysics(null, new BABYLON.CannonJSPlugin());
-  scene.clearColor = BABYLON.Color3.White().toColor4();
+  scene.enablePhysics(null, new CannonJSPlugin());
+  scene.clearColor = Color3.White().toColor4();
 
-  const ground = BABYLON.MeshBuilder.CreateGround(
+  const ground = MeshBuilder.CreateGround(
     'ground',
     { width: 1000, height: 1000 },
     scene,
   );
   ground.receiveShadows = true;
   ground.material = new ShadowOnlyMaterial('groundMat', scene);
-  ground.physicsImpostor = new BABYLON.PhysicsImpostor(
+  ground.physicsImpostor = new PhysicsImpostor(
     ground,
-    BABYLON.PhysicsImpostor.BoxImpostor,
+    PhysicsImpostor.BoxImpostor,
     { mass: 0, restitution: 0.1 },
     scene,
   );
 
   // https://forum.babylonjs.com/t/directionallight-position-has-meaning/9490/2
-  var directionalLight = new BABYLON.DirectionalLight(
+  var directionalLight = new DirectionalLight(
     'directionalLight',
-    new BABYLON.Vector3(-1, -1, -1),
+    new Vector3(-1, -1, -1),
     scene,
   );
-  directionalLight.position = new BABYLON.Vector3(0, 10, 0);
+  directionalLight.position = new Vector3(0, 10, 0);
   directionalLight.radius = 10;
-  directionalLight.specular = BABYLON.Color3.Black();
+  directionalLight.specular = Color3.Black();
 
   // https://playground.babylonjs.com/#XDNVAY#0
-  var shadowGenerator = new BABYLON.CascadedShadowGenerator(
-    1024,
-    directionalLight,
-  );
+  var shadowGenerator = new CascadedShadowGenerator(1024, directionalLight);
   // shadowGenerator.debug = true;
   shadowGenerator.setDarkness(0.9);
   shadowGenerator.shadowMaxZ = 100;
 
-  var hemisphericLight = new BABYLON.HemisphericLight(
+  var hemisphericLight = new HemisphericLight(
     'hemisphericLight',
-    new BABYLON.Vector3(1, 1, 1),
+    new Vector3(1, 1, 1),
     scene,
   );
   hemisphericLight.intensity = 0.8;
-  hemisphericLight.specular = BABYLON.Color3.Black();
+  hemisphericLight.specular = Color3.Black();
 
   addNewCubeCharacters(scene, ground, shadowGenerator);
 
   var touching = false;
-  var lastPoint: BABYLON.Vector3 | undefined | null = null;
+  var lastPoint: Vector3 | undefined | null = null;
   scene.onPointerObservable.add((eventData) => {
     switch (eventData.type) {
-      case BABYLON.PointerEventTypes.POINTERDOWN:
+      case PointerEventTypes.POINTERDOWN:
         touching = true;
         break;
-      case BABYLON.PointerEventTypes.POINTERUP:
+      case PointerEventTypes.POINTERUP:
         touching = false;
         lastPoint = null;
         break;
-      case BABYLON.PointerEventTypes.POINTERMOVE:
+      case PointerEventTypes.POINTERMOVE:
         if (touching) {
           var pickResult = scene.pick(
             scene.pointerX,
@@ -116,9 +135,9 @@ export function createScene(
 }
 
 async function addNewCubeCharacters(
-  scene: BABYLON.Scene,
-  ground: BABYLON.AbstractMesh,
-  shadowGenerator: BABYLON.ShadowGenerator,
+  scene: Scene,
+  ground: AbstractMesh,
+  shadowGenerator: ShadowGenerator,
 ) {
   for (var i = 0; i < 100; i++) {
     const cube = addNewCubeCharacter(scene, ground);
@@ -128,16 +147,13 @@ async function addNewCubeCharacters(
   }
 }
 
-function addNewCubeCharacter(
-  scene: BABYLON.Scene,
-  ground: BABYLON.AbstractMesh,
-) {
+function addNewCubeCharacter(scene: Scene, ground: AbstractMesh) {
   // TODO: this looks ok, but i guessed the numbers, so read this:
   // https://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
-  const color = new BABYLON.Color3();
-  BABYLON.Color3.HSVtoRGBToRef(Math.random() * 360, 0.5, 1, color);
+  const color = new Color3();
+  Color3.HSVtoRGBToRef(Math.random() * 360, 0.5, 1, color);
 
-  const mesh = BABYLON.MeshBuilder.CreateBox(
+  const mesh = MeshBuilder.CreateBox(
     'cube',
     {
       size: 1,
@@ -156,14 +172,14 @@ function addNewCubeCharacter(
 
   mesh.position.set(Math.random() * 100 - 50, 2, Math.random() * 100 - 50);
 
-  mesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+  mesh.physicsImpostor = new PhysicsImpostor(
     mesh,
-    BABYLON.PhysicsImpostor.BoxImpostor,
+    PhysicsImpostor.BoxImpostor,
     { mass: 1, restitution: 0.5 },
     scene,
   );
 
-  function move(direction: BABYLON.Vector3) {
+  function move(direction: Vector3) {
     mesh.applyImpulse(
       direction.normalize().scale(2),
       mesh.getAbsolutePosition().addInPlaceFromFloats(0, 0.5, 0),
@@ -171,10 +187,10 @@ function addNewCubeCharacter(
   }
 
   const directions = [
-    BABYLON.Vector3.Forward(),
-    BABYLON.Vector3.Backward(),
-    BABYLON.Vector3.Left(),
-    BABYLON.Vector3.Right(),
+    Vector3.Forward(),
+    Vector3.Backward(),
+    Vector3.Left(),
+    Vector3.Right(),
   ];
   async function brain() {
     while (true) {
@@ -198,11 +214,11 @@ function addNewCubeCharacter(
 
   var isGrounded = false;
 
-  mesh.actionManager = new BABYLON.ActionManager(scene);
+  mesh.actionManager = new ActionManager(scene);
   mesh.actionManager.registerAction(
-    new BABYLON.ExecuteCodeAction(
+    new ExecuteCodeAction(
       {
-        trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
+        trigger: ActionManager.OnIntersectionEnterTrigger,
         parameter: ground,
       },
       () => {
@@ -211,9 +227,9 @@ function addNewCubeCharacter(
     ),
   );
   mesh.actionManager.registerAction(
-    new BABYLON.ExecuteCodeAction(
+    new ExecuteCodeAction(
       {
-        trigger: BABYLON.ActionManager.OnIntersectionExitTrigger,
+        trigger: ActionManager.OnIntersectionExitTrigger,
         parameter: ground,
       },
       () => {

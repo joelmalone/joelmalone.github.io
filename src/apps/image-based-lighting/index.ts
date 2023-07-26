@@ -1,4 +1,23 @@
-import * as BABYLON from '@babylonjs/core/Legacy/legacy';
+import { Engine } from '@babylonjs/core/Engines/engine';
+import { Animation } from '@babylonjs/core/Animations/animation';
+import { Scene } from '@babylonjs/core/scene';
+import { Matrix, Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
+import { CannonJSPlugin } from '@babylonjs/core/Physics/v1/Plugins/cannonJSPlugin';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { CubeTexture } from '@babylonjs/core/Materials/Textures/cubeTexture';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import { ActionManager } from '@babylonjs/core/Actions/actionManager';
+import { ExecuteCodeAction } from '@babylonjs/core/Actions/directActions';
+import { PBRMetallicRoughnessMaterial } from '@babylonjs/core/Materials/PBR/pbrMetallicRoughnessMaterial';
+import { PhysicsImpostor } from '@babylonjs/core/Physics/v1/physicsImpostor';
+
+// Import components as per https://doc.babylonjs.com/setup/frameworkPackages/es6Support
+import '@babylonjs/core/Physics/physicsEngineComponent'
+import "@babylonjs/core/Materials/Textures/Loaders/envTextureLoader";
+import "@babylonjs/core/Helpers/sceneHelpers";
+
 import CANNON from 'cannon';
 window.CANNON = CANNON;
 
@@ -7,32 +26,32 @@ import SunsetEnv from './environment-sunset.env?url';
 import NightEnv from './environment-night.env?url';
 import RiverEnv from './environment-river.env?url';
 import NoonEnv from './environment-noon.env?url';
-import { CubeTexture, Mesh, Scene } from '@babylonjs/core/Legacy/legacy';
+
 // You can get more HDR images from PolyHaven:
 // https://polyhaven.com/hdris
 // You can convert HDR images to .env files using Babylon's online tool:
 // https://www.babylonjs.com/tools/ibl/
 
 export function createScene(
-  engine: BABYLON.Engine,
+  engine: Engine,
   canvasElement: HTMLCanvasElement,
-): BABYLON.Scene {
+): Scene {
   engine.enableOfflineSupport = false;
-  BABYLON.Animation.AllowMatricesInterpolation = true;
-  var scene = new BABYLON.Scene(engine);
+  Animation.AllowMatricesInterpolation = true;
+  var scene = new Scene(engine);
 
-  const camera = new BABYLON.ArcRotateCamera(
+  const camera = new ArcRotateCamera(
     'Camera',
     (75 * Math.PI) / 180,
     (75 * Math.PI) / 180,
     20,
-    new BABYLON.Vector3(0, 2.5, 0),
+    new Vector3(0, 2.5, 0),
     scene,
   );
   camera.attachControl(canvasElement);
 
   // We use Cannon physics to drop the cubes into the scene
-  scene.enablePhysics(null, new BABYLON.CannonJSPlugin());
+  scene.enablePhysics(null, new CannonJSPlugin());
 
   // For each of our skybox texture URLs, load it as a texture
   //  and create a skybox for it. We'll turn off all but one
@@ -43,7 +62,7 @@ export function createScene(
     RiverEnv,
     NoonEnv,
   ].map((url, index, arr) => {
-    const texture = new BABYLON.CubeTexture(url, scene);
+    const texture = new CubeTexture(url, scene);
     const skybox = scene.createDefaultSkybox(texture, true, 10000, 0.1)!;
 
     makeSkyboxRotate(texture, skybox);
@@ -91,7 +110,7 @@ function makeSkyboxRotate(texture: CubeTexture, skybox: Mesh) {
     skybox.rotation.set(0, t, 0);
     // Rotate the reflection texture (in the opposite direction!),
     // which makes the environment's lighting rotate
-    texture.setReflectionTextureMatrix(BABYLON.Matrix.RotationY(-t));
+    texture.setReflectionTextureMatrix(Matrix.RotationY(-t));
   });
 }
 
@@ -112,7 +131,7 @@ function addButtonForSkybox(
   {
     const scene = skybox.getScene();
 
-    const meshButton = BABYLON.MeshBuilder.CreateSphere(
+    const meshButton = MeshBuilder.CreateSphere(
       'cube-button',
       {
         diameter: 0.9,
@@ -129,9 +148,9 @@ function addButtonForSkybox(
     meshButton.renderingGroupId = 1;
 
     // Add an action so that when clicked, it changes the skybox
-    meshButton.actionManager = new BABYLON.ActionManager(scene);
+    meshButton.actionManager = new ActionManager(scene);
     meshButton.actionManager.registerAction(
-      new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, () =>
+      new ExecuteCodeAction(ActionManager.OnPickTrigger, () =>
         onClicked(index),
       ),
     );
@@ -148,7 +167,7 @@ function addButtonForSkybox(
 
 function addPedestalToScene(scene: Scene) {
   // Create a PBR material for the pedestal
-  var pedestalMaterial = new BABYLON.PBRMetallicRoughnessMaterial(
+  var pedestalMaterial = new PBRMetallicRoughnessMaterial(
     'pedestalMaterial',
     scene,
   );
@@ -157,35 +176,35 @@ function addPedestalToScene(scene: Scene) {
 
   // Create meshes for the pedestal's parts and add physics imposters
 
-  const pedestalTop = BABYLON.MeshBuilder.CreateCylinder(
+  const pedestalTop = MeshBuilder.CreateCylinder(
     'cylinder',
     {
       diameter: 15,
       faceColors: [
-        new BABYLON.Color3(0.01, 0.01, 0.01).toColor4(),
-        new BABYLON.Color3(0.01, 0.01, 0.01).toColor4(),
-        new BABYLON.Color3(0.01, 0.01, 0.01).toColor4(),
+        new Color3(0.01, 0.01, 0.01).toColor4(),
+        new Color3(0.01, 0.01, 0.01).toColor4(),
+        new Color3(0.01, 0.01, 0.01).toColor4(),
       ],
     },
     scene,
   );
   pedestalTop.material = pedestalMaterial;
-  pedestalTop.physicsImpostor = new BABYLON.PhysicsImpostor(
+  pedestalTop.physicsImpostor = new PhysicsImpostor(
     pedestalTop,
-    BABYLON.PhysicsImpostor.CylinderImpostor,
+    PhysicsImpostor.CylinderImpostor,
     { mass: 0, restitution: 0.2 },
     scene,
   );
 
-  const pedestalShaft = BABYLON.MeshBuilder.CreateCylinder(
+  const pedestalShaft = MeshBuilder.CreateCylinder(
     'cylinder',
     {
       diameter: 10,
       height: 10,
       faceColors: [
-        new BABYLON.Color3(0, 0, 0).toColor4(),
-        new BABYLON.Color3(0, 0, 0).toColor4(),
-        new BABYLON.Color3(0, 0, 0).toColor4(),
+        new Color3(0, 0, 0).toColor4(),
+        new Color3(0, 0, 0).toColor4(),
+        new Color3(0, 0, 0).toColor4(),
       ],
     },
     scene,
@@ -194,12 +213,9 @@ function addPedestalToScene(scene: Scene) {
   pedestalShaft.position.set(0, -5, 0);
 }
 
-async function addCubesToSceneOverTime(scene: BABYLON.Scene) {
+async function addCubesToSceneOverTime(scene: Scene) {
   // Create a PBR material for the cubes
-  var cubesMaterial = new BABYLON.PBRMetallicRoughnessMaterial(
-    'cubesMaterial',
-    scene,
-  );
+  var cubesMaterial = new PBRMetallicRoughnessMaterial('cubesMaterial', scene);
   cubesMaterial.metallic = 0.1;
   cubesMaterial.roughness = 0.5;
 
@@ -210,16 +226,13 @@ async function addCubesToSceneOverTime(scene: BABYLON.Scene) {
   }
 }
 
-function addCubeToScene(
-  scene: BABYLON.Scene,
-  material: BABYLON.PBRMetallicRoughnessMaterial,
-) {
+function addCubeToScene(scene: Scene, material: PBRMetallicRoughnessMaterial) {
   // TODO: this looks ok, but i guessed the numbers, so read this:
   // https://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
-  const color = new BABYLON.Color3();
-  BABYLON.Color3.HSVtoRGBToRef(Math.random() * 360, 0.5, 1, color);
+  const color = new Color3();
+  Color3.HSVtoRGBToRef(Math.random() * 360, 0.5, 1, color);
 
-  const mesh = BABYLON.MeshBuilder.CreateBox(
+  const mesh = MeshBuilder.CreateBox(
     'cube',
     {
       size: 1,
@@ -243,9 +256,9 @@ function addCubeToScene(
     Math.random() * 5 - 2.5,
   );
 
-  mesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+  mesh.physicsImpostor = new PhysicsImpostor(
     mesh,
-    BABYLON.PhysicsImpostor.BoxImpostor,
+    PhysicsImpostor.BoxImpostor,
     { mass: 1, restitution: 0.5 },
     scene,
   );

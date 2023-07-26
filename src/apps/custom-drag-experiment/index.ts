@@ -3,35 +3,7 @@
 // https://doc.babylonjs.com/features/featuresDeepDive/physics/constraints
 // https://doc.babylonjs.com/typedoc/classes/EasingFunction
 
-import {
-  Engine,
-  DirectionalLight,
-  HemisphericLight,
-  TransformNode,
-  Scene,
-  Vector3,
-  MeshBuilder,
-  ArcRotateCamera,
-  HavokPlugin,
-  PhysicsAggregate,
-  PhysicsShapeType,
-  Color3,
-  StandardMaterial,
-  ShadowGenerator,
-  PhysicsBody,
-  PhysicsMotionType,
-  PhysicsShapeBox,
-  PhysicsShapeSphere,
-  Quaternion,
-  PhysicsShapeContainer,
-} from '@babylonjs/core/Legacy/legacy';
 import HavokPhysics from '@babylonjs/havok';
-import '@babylonjs/loaders/glTF';
-import {
-  getPhysicsBodyIdDraggableIncludingParents,
-  startDragPhysicsBodyByForceBehaviour,
-} from './drag-by-force';
-import { startDragPhysicsBodyByDistanceConstraintsBehaviour } from './drag-by-distance-constraints';
 import {
   Button3D,
   GUI3DManager,
@@ -39,8 +11,42 @@ import {
   TextBlock,
   Vector3WithInfo,
 } from '@babylonjs/gui';
+import { Engine } from '@babylonjs/core/Engines/engine';
+import { Scene } from '@babylonjs/core/scene';
+import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
+import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
+import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
+import { HavokPlugin } from '@babylonjs/core/Physics/v2/Plugins/havokPlugin';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import {
+  PhysicsShapeBox,
+  PhysicsShapeContainer,
+  PhysicsShapeSphere,
+} from '@babylonjs/core/Physics/v2/physicsShape';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import { PhysicsBody } from '@babylonjs/core/Physics/v2/physicsBody';
+import {
+  PhysicsMotionType,
+  PhysicsShapeType,
+} from '@babylonjs/core/Physics/v2/IPhysicsEnginePlugin';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { PhysicsAggregate } from '@babylonjs/core/Physics/v2/physicsAggregate';
+import {
+  getPhysicsBodyIdDraggableIncludingParents,
+  startDragPhysicsBodyByForceBehaviour,
+} from './drag-by-force';
+import { startDragPhysicsBodyByDistanceConstraintsBehaviour } from './drag-by-distance-constraints';
+
+// Import components as per https://doc.babylonjs.com/setup/frameworkPackages/es6Support
+import '@babylonjs/core/Physics/physicsEngineComponent';
+import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent';
 
 import WasmURL from '/node_modules/@babylonjs/havok/lib/esm/HavokPhysics.wasm?url';
+
+// TODO: constraint dragging doesn't work - no error - investigate n fix
 
 export function createScene(engine: Engine): Scene {
   // Create a BabylonJS scene

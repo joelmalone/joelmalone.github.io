@@ -1,22 +1,22 @@
-import {
-  UniversalCamera,
-  Engine,
-  IMouseEvent,
-  PointerEventTypes,
-  DirectionalLight,
-  HemisphericLight,
-  SceneLoader,
-  Texture,
-  Color4,
-  Scalar,
-  Quaternion,
-  AbstractMesh,
-  TransformNode,
-  ParticleSystem,
-  Scene,
-  Vector3,
-} from '@babylonjs/core/Legacy/legacy';
+import { Engine } from '@babylonjs/core/Engines/engine';
+import { Scene } from '@babylonjs/core/scene';
+import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
+import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import { Color4 } from '@babylonjs/core/Maths/math.color';
+import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
+import { UniversalCamera } from '@babylonjs/core/Cameras/universalCamera';
+import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
+import { IMouseEvent } from '@babylonjs/core/Events/deviceInputEvents';
+import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
+import { Scalar } from '@babylonjs/core/Maths/math.scalar';
+
+// Import components as per https://doc.babylonjs.com/setup/frameworkPackages/es6Support
 import '@babylonjs/loaders/glTF';
+import "@babylonjs/core/Helpers/sceneHelpers";
 
 export function createScene(engine: Engine, canvas: HTMLCanvasElement): Scene {
   // Create a BabylonJS scene

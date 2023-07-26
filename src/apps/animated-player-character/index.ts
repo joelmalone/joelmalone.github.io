@@ -1,26 +1,43 @@
-import * as BABYLON from '@babylonjs/core/Legacy/legacy';
-import { PointerEventTypes } from '@babylonjs/core/Legacy/legacy';
+import { Scene } from '@babylonjs/core/scene';
+import { Observable } from '@babylonjs/core/Misc/observable';
+import { ActionManager } from '@babylonjs/core/Actions/actionManager';
+import { ExecuteCodeAction } from '@babylonjs/core/Actions/directActions';
+import { Engine } from '@babylonjs/core/Engines/engine';
+import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
+import { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
+import { FollowCamera } from '@babylonjs/core/Cameras/followCamera';
+import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { Animation } from '@babylonjs/core/Animations/animation';
+
+// Import components as per https://doc.babylonjs.com/setup/frameworkPackages/es6Support
+import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent';
 import '@babylonjs/loaders/glTF';
+import "@babylonjs/core/Helpers/sceneHelpers";
 
 import CharacterGLB from './apc.glb?url';
 
 /**
  * Observes player input and transforms it into a character movement state observable.
  *
- * @param {BABYLON.Scene} scene
+ * @param {Scene} scene
  * @return {*}
  */
-function createInputMap(scene: BABYLON.Scene) {
+function createInputMap(scene: Scene) {
   const states = {
     forward: false,
     left: false,
     right: false,
   };
   const observables = {
-    forward: new BABYLON.Observable<boolean>(),
-    left: new BABYLON.Observable<boolean>(),
-    right: new BABYLON.Observable<boolean>(),
-    all: new BABYLON.Observable<typeof states>(),
+    forward: new Observable<boolean>(),
+    left: new Observable<boolean>(),
+    right: new Observable<boolean>(),
+    all: new Observable<typeof states>(),
   };
   const mapping: { [k: string]: keyof typeof states | undefined } = {
     w: 'forward',
@@ -28,34 +45,28 @@ function createInputMap(scene: BABYLON.Scene) {
     d: 'right',
   };
 
-  scene.actionManager = new BABYLON.ActionManager(scene);
+  scene.actionManager = new ActionManager(scene);
   scene.actionManager.registerAction(
-    new BABYLON.ExecuteCodeAction(
-      BABYLON.ActionManager.OnKeyDownTrigger,
-      function (evt) {
-        const keyboardEvent: KeyboardEvent = evt.sourceEvent;
-        const k = mapping[keyboardEvent.key.toLowerCase()];
-        if (k && !states[k]) {
-          states[k] = true;
-          observables[k].notifyObservers(true);
-          observables.all.notifyObservers(states);
-        }
-      },
-    ),
+    new ExecuteCodeAction(ActionManager.OnKeyDownTrigger, function (evt) {
+      const keyboardEvent: KeyboardEvent = evt.sourceEvent;
+      const k = mapping[keyboardEvent.key.toLowerCase()];
+      if (k && !states[k]) {
+        states[k] = true;
+        observables[k].notifyObservers(true);
+        observables.all.notifyObservers(states);
+      }
+    }),
   );
   scene.actionManager.registerAction(
-    new BABYLON.ExecuteCodeAction(
-      BABYLON.ActionManager.OnKeyUpTrigger,
-      function (evt) {
-        const keyboardEvent: KeyboardEvent = evt.sourceEvent;
-        const k = mapping[keyboardEvent.key.toLowerCase()];
-        if (k && states[k]) {
-          states[k] = false;
-          observables[k].notifyObservers(false);
-          observables.all.notifyObservers(states);
-        }
-      },
-    ),
+    new ExecuteCodeAction(ActionManager.OnKeyUpTrigger, function (evt) {
+      const keyboardEvent: KeyboardEvent = evt.sourceEvent;
+      const k = mapping[keyboardEvent.key.toLowerCase()];
+      if (k && states[k]) {
+        states[k] = false;
+        observables[k].notifyObservers(false);
+        observables.all.notifyObservers(states);
+      }
+    }),
   );
 
   return {
@@ -65,46 +76,34 @@ function createInputMap(scene: BABYLON.Scene) {
 }
 
 export function createScene(
-  engine: BABYLON.Engine,
+  engine: Engine,
   canvasElement: HTMLCanvasElement,
-): BABYLON.Scene {
+): Scene {
   engine.enableOfflineSupport = false;
-  BABYLON.Animation.AllowMatricesInterpolation = true;
-  var scene = new BABYLON.Scene(engine);
+  Animation.AllowMatricesInterpolation = true;
+  var scene = new Scene(engine);
 
   const inputs = createInputMap(scene);
 
-  var light = new BABYLON.HemisphericLight(
-    'light1',
-    new BABYLON.Vector3(0, 1, 0),
-    scene,
-  );
+  var light = new HemisphericLight('light1', new Vector3(0, 1, 0), scene);
   light.intensity = 0.6;
-  light.specular = BABYLON.Color3.Black();
+  light.specular = Color3.Black();
 
-  var light2 = new BABYLON.DirectionalLight(
-    'dir01',
-    new BABYLON.Vector3(3, -3, 1),
-    scene,
-  );
-  light2.position = new BABYLON.Vector3(0, 5, 5);
+  var light2 = new DirectionalLight('dir01', new Vector3(3, -3, 1), scene);
+  light2.position = new Vector3(0, 5, 5);
 
-  var shadowGenerator = new BABYLON.ShadowGenerator(1024, light2);
+  var shadowGenerator = new ShadowGenerator(1024, light2);
   shadowGenerator.useBlurExponentialShadowMap = true;
   shadowGenerator.blurKernel = 32;
 
-  const followCamera = new BABYLON.FollowCamera(
-    'camera1',
-    new BABYLON.Vector3(),
-    scene,
-  );
+  const followCamera = new FollowCamera('camera1', new Vector3(), scene);
   followCamera.radius = 5;
   followCamera.heightOffset = 1.5;
   // followCamera.attachControl(true);
 
   // Observe character movement and transform it into a movement
   //  vector to be applied later (during rendering)
-  const localVelocity = new BABYLON.Vector3();
+  const localVelocity = new Vector3();
   inputs.all.add((states) => {
     localVelocity.set(0, 0, 0);
     if (states.forward) {
@@ -143,11 +142,11 @@ export function createScene(
   const helper = scene.createDefaultEnvironment({
     enableGroundShadow: true,
   })!;
-  helper.setMainColor(BABYLON.Color3.Teal());
+  helper.setMainColor(Color3.Teal());
   helper.ground!.position.y += 0.01;
 
   // Import the GLB
-  BABYLON.SceneLoader.ImportMesh(
+  SceneLoader.ImportMesh(
     '',
     CharacterGLB,
     '',
@@ -201,64 +200,52 @@ export function createScene(
         'leftAnimation',
         'rightAnimation',
       ];
-      scene.onBeforeAnimationsObservable.add(
-        () => {
-          // Observe the current movement vector and reflect it in the target weights
-          // Note: walk never goes to a weight of zero. If we set it to 0, then it
-          //  stops animating, which means left and right can no longer sync to it.
-          //  So we use a tiny non-zero value instead.
-          targetWeights.walkingAnimation = localVelocity.z > 0.1 ? 1 : 0.000001;
-          targetWeights.leftAnimation = localVelocity.x < -0.1 ? 1 : 0;
-          targetWeights.rightAnimation = localVelocity.x > 0.1 ? 1 : 0;
-          targetWeights.idleAnimation =
-            targetWeights.walkingAnimation == 0.000001 &&
-            targetWeights.leftAnimation == 0 &&
-            targetWeights.rightAnimation == 0
-              ? 1
-              : 0;
+      scene.onBeforeAnimationsObservable.add(() => {
+        // Observe the current movement vector and reflect it in the target weights
+        // Note: walk never goes to a weight of zero. If we set it to 0, then it
+        //  stops animating, which means left and right can no longer sync to it.
+        //  So we use a tiny non-zero value instead.
+        targetWeights.walkingAnimation = localVelocity.z > 0.1 ? 1 : 0.000001;
+        targetWeights.leftAnimation = localVelocity.x < -0.1 ? 1 : 0;
+        targetWeights.rightAnimation = localVelocity.x > 0.1 ? 1 : 0;
+        targetWeights.idleAnimation =
+          targetWeights.walkingAnimation == 0.000001 &&
+          targetWeights.leftAnimation == 0 &&
+          targetWeights.rightAnimation == 0
+            ? 1
+            : 0;
 
-          // Transition to the target weights
-          for (const k of weightsKeys) {
+        // Transition to the target weights
+        for (const k of weightsKeys) {
+          if (currentWeights[k] < targetWeights[k]) {
+            currentWeights[k] += 0.1;
+            if (currentWeights[k] > targetWeights[k]) {
+              currentWeights[k] = targetWeights[k];
+            }
+          } else if (currentWeights[k] > targetWeights[k]) {
+            currentWeights[k] -= 0.1;
             if (currentWeights[k] < targetWeights[k]) {
-              currentWeights[k] += 0.1;
-              if (currentWeights[k] > targetWeights[k]) {
-                currentWeights[k] = targetWeights[k];
-              }
-            } else if (currentWeights[k] > targetWeights[k]) {
-              currentWeights[k] -= 0.1;
-              if (currentWeights[k] < targetWeights[k]) {
-                currentWeights[k] = targetWeights[k];
-              }
+              currentWeights[k] = targetWeights[k];
             }
           }
-          // Apply target weights
-          idleAnimation.setWeightForAllAnimatables(
-            currentWeights['idleAnimation'],
-          );
-          walkingAnimation.setWeightForAllAnimatables(
-            currentWeights['walkingAnimation'],
-          );
-          leftAnimation.setWeightForAllAnimatables(
-            currentWeights['leftAnimation'],
-          );
-          rightAnimation.setWeightForAllAnimatables(
-            currentWeights['rightAnimation'],
-          );
-        },
-      );
-
-      // Move the player
-      // const renderObservable = scene.onBeforeRenderObservable.add(() => {
-      //   const deltaTime = engine.getDeltaTime();
-      //   const delta = localVelocity
-      //     .normalize()
-      //     .scale((deltaTime * SPEED) / 1000);
-
-      //   meshes[0].position.addInPlace(delta);
-      // });
+        }
+        // Apply target weights
+        idleAnimation.setWeightForAllAnimatables(
+          currentWeights['idleAnimation'],
+        );
+        walkingAnimation.setWeightForAllAnimatables(
+          currentWeights['walkingAnimation'],
+        );
+        leftAnimation.setWeightForAllAnimatables(
+          currentWeights['leftAnimation'],
+        );
+        rightAnimation.setWeightForAllAnimatables(
+          currentWeights['rightAnimation'],
+        );
+      });
 
       // Add a dummy mesh at the mesh's midpoint, then use that as the camera target
-      const dummy = new BABYLON.Mesh('dummy', scene, meshes[0]);
+      const dummy = new Mesh('dummy', scene, meshes[0]);
       dummy.position.addInPlaceFromFloats(0, 1, 0);
       followCamera.lockedTarget = dummy;
 

@@ -1,19 +1,29 @@
-import * as BABYLON from '@babylonjs/core/Legacy/legacy';
+import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
+import { Engine } from '@babylonjs/core/Engines/engine';
+import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
+import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import { Scene } from '@babylonjs/core/scene';
+
+// Import components as per https://doc.babylonjs.com/setup/frameworkPackages/es6Support
+import "@babylonjs/core/Materials/standardMaterial";
 
 export function createScene(
-  engine: BABYLON.Engine,
+  engine: Engine,
   canvasElement: HTMLCanvasElement,
-): BABYLON.Scene {
-  const scene = new BABYLON.Scene(engine);
+): Scene {
+  const scene = new Scene(engine);
 
-  scene.clearColor = new BABYLON.Color4();
+  scene.clearColor = new Color4();
 
-  const camera = new BABYLON.ArcRotateCamera(
+  const camera = new ArcRotateCamera(
     'Camera',
     0,
     0,
     50,
-    new BABYLON.Vector3(0, 0, 0),
+    new Vector3(0, 0, 0),
     scene,
   );
   camera.lowerBetaLimit = null!;
@@ -22,29 +32,25 @@ export function createScene(
   camera.speed = 1;
   camera.allowUpsideDown = true;
 
-  const light = new BABYLON.HemisphericLight(
-    'hemi',
-    new BABYLON.Vector3(4, -4, 4),
-    scene,
-  );
-  light.groundColor = new BABYLON.Color3(1, 0.64, 0);
+  const light = new HemisphericLight('hemi', new Vector3(4, -4, 4), scene);
+  light.groundColor = new Color3(1, 0.64, 0);
   light.intensity = 1;
 
   // scene.debugLayer.show();
 
   const shape = [
-    new BABYLON.Vector3(2, -1, 0),
-    new BABYLON.Vector3(4, -0.5, 0),
-    new BABYLON.Vector3(4, 0.5, 0),
-    new BABYLON.Vector3(2, 1, 0),
-    new BABYLON.Vector3(2, -1, 0),
+    new Vector3(2, -1, 0),
+    new Vector3(4, -0.5, 0),
+    new Vector3(4, 0.5, 0),
+    new Vector3(2, 1, 0),
+    new Vector3(2, -1, 0),
   ];
 
-  const lathe = BABYLON.MeshBuilder.CreateLathe('lathe', {
+  const lathe = MeshBuilder.CreateLathe('lathe', {
     shape,
     radius: 1,
     tessellation: 3,
-    sideOrientation: BABYLON.Mesh.DOUBLESIDE,
+    sideOrientation: Mesh.DOUBLESIDE,
   });
   lathe.convertToFlatShadedMesh();
   scene.registerBeforeRender(function () {
@@ -52,11 +58,11 @@ export function createScene(
     lathe.rotation.y += (0.1 * engine.getDeltaTime()) / 1000;
   });
 
-  const lathe2 = BABYLON.MeshBuilder.CreateLathe('lathe2', {
+  const lathe2 = MeshBuilder.CreateLathe('lathe2', {
     shape,
     radius: 3,
     tessellation: 3,
-    sideOrientation: BABYLON.Mesh.DOUBLESIDE,
+    sideOrientation: Mesh.DOUBLESIDE,
   });
   lathe2.convertToFlatShadedMesh();
   scene.registerBeforeRender(function () {
@@ -64,11 +70,11 @@ export function createScene(
     lathe2.rotation.y += (0.1 * engine.getDeltaTime()) / -1000;
   });
 
-  const lathe3 = BABYLON.MeshBuilder.CreateLathe('lathe3', {
+  const lathe3 = MeshBuilder.CreateLathe('lathe3', {
     shape,
     radius: 9,
     tessellation: 3,
-    sideOrientation: BABYLON.Mesh.DOUBLESIDE,
+    sideOrientation: Mesh.DOUBLESIDE,
   });
   lathe3.convertToFlatShadedMesh();
   scene.registerBeforeRender(function () {

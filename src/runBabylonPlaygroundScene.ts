@@ -1,20 +1,27 @@
-import * as BABYLON from '@babylonjs/core/Legacy/legacy';
+import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
+import { Engine } from '@babylonjs/core/Engines/engine';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Scene } from '@babylonjs/core/scene';
+
+import '@babylonjs/core/Loading/loadingScreen';
 
 export type CreateBabylonScene = (
-  engine: BABYLON.Engine,
+  engine: Engine,
   canvasElement: HTMLCanvasElement,
-) => BABYLON.Scene;
+) => Scene;
 
 export function runBabylonPlaygroundScene(
   canvasElement: HTMLCanvasElement,
   createScene: CreateBabylonScene,
 ) {
-  const engine = new BABYLON.Engine(canvasElement, true); // Generate the BABYLON 3D engine
+  const engine = new Engine(canvasElement, true); // Generate the BABYLON 3D engine
 
   try {
+    // TODO: does this even display? Can it be removed? I think it would be
+    // better to use the HTML template's built-in fade in/out
     engine.displayLoadingUI();
 
-    const scene = createScene(engine, canvasElement); //Call the createScene function
+    const scene = createScene(engine, canvasElement);
 
     scene.cameras[0] || createAndAddCameraToScene(canvasElement, scene);
 
@@ -49,20 +56,17 @@ export function runBabylonPlaygroundScene(
   }
 }
 
-function createAndAddCameraToScene(
-  canvas: HTMLCanvasElement,
-  scene: BABYLON.Scene,
-) {
-  const camera = new BABYLON.ArcRotateCamera(
+function createAndAddCameraToScene(canvas: HTMLCanvasElement, scene: Scene) {
+  const camera = new ArcRotateCamera(
     'Camera',
     Math.PI / 6,
     Math.PI / 4,
     20,
-    BABYLON.Vector3.Zero(),
+    Vector3.Zero(),
     scene,
   );
   camera.attachControl(canvas, false);
-  camera.setTarget(BABYLON.Vector3.Zero());
+  camera.setTarget(Vector3.Zero());
 
   return camera;
 }

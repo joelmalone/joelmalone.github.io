@@ -2,7 +2,7 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { Node } from '@babylonjs/core/node';
-import { PhysicsBody } from '@babylonjs/core/Physics/v2';
+import { PhysicsBody } from '@babylonjs/core/Physics/v2/physicsBody';
 import { Scene } from '@babylonjs/core/scene';
 import { startCustomDragBehaviour } from './drag-behaviour';
 

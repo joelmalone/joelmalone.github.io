@@ -4,6 +4,9 @@ import { Vector2, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { Scene } from '@babylonjs/core/scene';
 
+// Import components as per https://doc.babylonjs.com/setup/frameworkPackages/es6Support
+import '@babylonjs/core/Culling/ray';
+
 /**
  * The handler for the drag start event, which returns the event handlers for
  * subsequent dragging and drag end events, or returns null to abort the drag.
