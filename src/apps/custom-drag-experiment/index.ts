@@ -163,17 +163,66 @@ async function populateScene(scene: Scene) {
           new Vector3(-1, 0, -1),
         ],
       ),
+    CornersWithBottom: () =>
+      startDragPhysicsBodyByDistanceConstraintsBehaviour(
+        scene,
+        getPhysicsBodyIdDraggableIncludingParents,
+        [
+          new Vector3(1, 0, 1),
+          new Vector3(-1, 0, 1),
+          new Vector3(1, 0, -1),
+          new Vector3(-1, 0, -1),
+          new Vector3(0, -1, 0),
+        ],
+      ),
+    CornersWithTop: () =>
+      startDragPhysicsBodyByDistanceConstraintsBehaviour(
+        scene,
+        getPhysicsBodyIdDraggableIncludingParents,
+        [
+          new Vector3(1, 0, 1),
+          new Vector3(-1, 0, 1),
+          new Vector3(1, 0, -1),
+          new Vector3(-1, 0, -1),
+          new Vector3(0, 2, 0),
+        ],
+      ),
     HorizontalTriangle: () =>
       startDragPhysicsBodyByDistanceConstraintsBehaviour(
         scene,
         getPhysicsBodyIdDraggableIncludingParents,
         [new Vector3(0, 0, 1), new Vector3(1, 0, -1), new Vector3(-1, 0, -1)],
       ),
+    HorizontalTriangleWithVert: () =>
+      startDragPhysicsBodyByDistanceConstraintsBehaviour(
+        scene,
+        getPhysicsBodyIdDraggableIncludingParents,
+        [
+          new Vector3(0, 0, 1),
+          new Vector3(1, 0, -1),
+          new Vector3(-1, 0, -1),
+          new Vector3(0, 1, 0),
+          new Vector3(0, -1, 0),
+        ],
+      ),
     TwoPointSkewer: () =>
       startDragPhysicsBodyByDistanceConstraintsBehaviour(
         scene,
         getPhysicsBodyIdDraggableIncludingParents,
         [new Vector3(0, 0, 1), new Vector3(0, 0, -1)],
+      ),
+    SixDirections: () =>
+      startDragPhysicsBodyByDistanceConstraintsBehaviour(
+        scene,
+        getPhysicsBodyIdDraggableIncludingParents,
+        [
+          new Vector3(0, 0, 1),
+          new Vector3(0, 0, -1),
+          new Vector3(0, 1, 0),
+          new Vector3(0, -1, 0),
+          new Vector3(1, 0, 0),
+          new Vector3(-1, 0, 0),
+        ],
       ),
   };
 
@@ -223,8 +272,8 @@ async function populateScene(scene: Scene) {
 
   stackPanel.linkToTransformNode(anchor);
 
-  // Select the first drag style
-  buttons[buttons.length - 1].onPointerClickObservable.notifyObservers(
+  // Select an initial drag style
+  buttons[2].onPointerClickObservable.notifyObservers(
     new Vector3WithInfo(Vector3.ZeroReadOnly),
   );
 

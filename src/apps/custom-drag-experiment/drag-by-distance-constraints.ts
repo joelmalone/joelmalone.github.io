@@ -3,9 +3,9 @@ import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { Node } from '@babylonjs/core/node';
 import {
-  DistanceConstraint,
   PhysicsBody,
   PhysicsMotionType,
+  SpringConstraint,
 } from '@babylonjs/core/Physics/v2';
 import { Scene } from '@babylonjs/core/scene';
 import { KeyboardEventTypes } from '@babylonjs/core/Events/keyboardEvents';
@@ -178,7 +178,7 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
           scene,
         );
         sphere.parent = toSphere;
-        sphere.position = dir;
+        sphere.position = dir.scale(2);
         const sphereBody = new PhysicsBody(
           sphere,
           PhysicsMotionType.ANIMATED,
@@ -189,9 +189,17 @@ export function startDragPhysicsBodyByDistanceConstraintsBehaviour(
 
         // TODO: wait for SpringConstraint to be released:
         // https://github.com/BabylonJS/Babylon.js/blob/master/CHANGELOG.md
-        const constraint = new DistanceConstraint(0.01, scene);
-        constraint.options.pivotA = Vector3.ZeroReadOnly;
-        constraint.options.pivotB = dir;
+        const constraint = new SpringConstraint(
+          Vector3.ZeroReadOnly,
+          dir,
+          dir.scale(-1).normalizeToNew(),
+          dir.normalizeToNew(),
+          0,
+          dir.length(),
+          100,
+          1,
+          scene,
+        );
 
         sphereBody.addConstraint(physicsBody, constraint);
 
